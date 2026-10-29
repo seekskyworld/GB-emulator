@@ -190,16 +190,15 @@ class Driver:
     # -- battle ---------------------------------------------------------------
 
     def battle_actions(self) -> List[str]:
-        """One battle step. The main battle menu is FIGHT/PKMN (top) and ITEM/RUN (bottom):
-        UP+LEFT puts the cursor on FIGHT from anywhere, DOWN+RIGHT on RUN. In text boxes the
-        directions are ignored and A just advances; B backs out of sub-menus (e.g. an empty
-        ITEM list showing only CANCEL), where repeated A would otherwise loop forever."""
-        r = self.rng.random()
-        if r < 0.25:  # try to flee (fails harmlessly in trainer battles)
-            return ["press_b", "press_down", "press_right", "press_a", "wait_30"]
-        if r < 0.35:
-            return ["press_b", "wait_10", "press_a", "wait_30"]
-        return ["press_up", "press_left", "press_a", "wait_10", "press_a", "wait_30"]
+        """One battle step. The main battle menu is FIGHT/PKMN (top) and ITEM/RUN (bottom).
+        Every step starts with B three times: that backs out of any sub-menu (party list with
+        SWITCH/STATS/CANCEL, an empty ITEM list, the move list) to the main menu and advances
+        text; B does nothing on the main menu itself. Then UP+LEFT selects FIGHT (A, A = first
+        move) or DOWN+RIGHT selects RUN (fails harmlessly in trainer battles)."""
+        back = ["press_b", "press_b", "press_b"]
+        if self.rng.random() < 0.25:
+            return back + ["press_down", "press_right", "press_a", "wait_30"]
+        return back + ["press_up", "press_left", "press_a", "wait_10", "press_a", "wait_30"]
 
     # -- free roaming -------------------------------------------------------
 
