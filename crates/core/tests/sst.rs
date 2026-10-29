@@ -117,8 +117,8 @@ fn run_case(t: &Json, exc: Option<Exception>) -> Result<(), String> {
             want.len()
         }
     };
-    for i in 0..n {
-        let ok = match (&want[i], got.get(i)) {
+    for (i, w) in want.iter().enumerate().take(n) {
+        let ok = match (w, got.get(i)) {
             (Json::Null, Some(Access::Idle)) => true,
             (Json::Arr(c), Some(acc)) => match (c[2].as_str(), *acc) {
                 ("r-m", Access::Read(a, v)) => a as u64 == c[0].as_u64() && v as u64 == c[1].as_u64(),
@@ -129,7 +129,7 @@ fn run_case(t: &Json, exc: Option<Exception>) -> Result<(), String> {
             _ => false,
         };
         if !ok {
-            return Err(format!("case {name:?}: M-cycle {} is {:?}, expected {:?} (all: {got:?})", i + 1, got.get(i), want[i]));
+            return Err(format!("case {name:?}: M-cycle {} is {:?}, expected {w:?} (all: {got:?})", i + 1, got.get(i)));
         }
     }
     Ok(())
