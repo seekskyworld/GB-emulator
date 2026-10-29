@@ -46,26 +46,33 @@ fn run_to_vblank(p: &mut Ppu) -> usize {
     panic!("no VBlank within two frames");
 }
 
-/// 在 dot = 4k（LCD 刚开启时 k=0）的位置，按 §3.5 的模型应读到的 (LY, mode)。
-fn expected(k: usize) -> (u8, u8) {
+/// LCD 刚开启（k=0）之后第 k 个 M-cycle 应读到的 (LY, STAT mode, STAT.2)，LYC=0。
+///
+/// 开启后的第 0 行 452 dot：dot 0–79 mode 0、80–251 mode 3、之后 mode 0。
+/// 之后每行 456 dot：dot 0–3 仍是上一行的 mode 且 STAT.2 读 0，dot 4 起 mode 2，84 起 mode 3，256 起 mode 0；
+/// VBlank 行 dot 4 起 mode 1。
+fn expected(k: usize) -> (u8, u8, bool) {
     let dots = 4 * k;
-    let line = (dots / 456) % 154;
-    let dot = dots % 456;
-    let first_line_after_on = dots < 456;
-    let m = if line >= 144 {
+    if dots < 452 {
+        let m = if (80..252).contains(&dots) { 3 } else { 0 };
+        return (0, m, true);
+    }
+    let d = dots - 452;
+    let line = (1 + d / 456) % 154;
+    let dot = d % 456;
+    let prev = if line == 0 || line > 144 { 1 } else { 0 };
+    let m = if dot < 4 {
+        prev
+    } else if line >= 144 {
         1
-    } else if dot < 80 {
-        if first_line_after_on {
-            0
-        } else {
-            2
-        }
-    } else if dot < 252 {
+    } else if dot < 84 {
+        2
+    } else if dot < 256 {
         3
     } else {
         0
     };
-    (line as u8, m)
+    (line as u8, m, line == 0 && dot >= 4)
 }
 
 #[test]
@@ -121,17 +128,17 @@ fn frame_is_70224_t_and_exactly_one_vblank_per_frame() {
 fn ly_and_mode_follow_the_line_schedule() {
     let mut p = Ppu::new();
     restart(&mut p);
-    assert_eq!((p.read_reg(LY), mode(&p)), expected(0));
+    let stat = p.read_reg(STAT);
+    assert_eq!((p.read_reg(LY), stat & 3, stat & 0x04 != 0), expected(0));
     let mut seen = [false; 154];
     for k in 1..=3 * FRAME_M {
         p.tick_mcycle();
-        let got = (p.read_reg(LY), mode(&p));
+        let stat = p.read_reg(STAT);
+        let got = (p.read_reg(LY), stat & 3, stat & 0x04 != 0);
         assert_eq!(got, expected(k), "at M-cycle {k}");
         seen[got.0 as usize] = true;
-        // STAT bit7 恒为 1；bit2 跟随 LY==LYC（LYC=0）。
-        let stat = p.read_reg(STAT);
+        // STAT bit7 恒为 1。
         assert_eq!(stat & 0x80, 0x80);
-        assert_eq!(stat & 0x04 != 0, got.0 == 0);
     }
     assert!(
         seen.iter().all(|&s| s),
@@ -143,7 +150,7 @@ fn ly_and_mode_follow_the_line_schedule() {
 fn mode_lengths_per_visible_line() {
     let mut p = Ppu::new();
     restart(&mut p);
-    run(&mut p, LINE_M); // 跳过开启后的第 0 行
+    run(&mut p, LINE_M - 1); // 跳过开启后的第 0 行（452 dot），停在第 1 行 dot 0
     for _ in 0..143 {
         let mut counts = [0usize; 4];
         for _ in 0..LINE_M {
@@ -309,30 +316,29 @@ fn lcd_off_freezes_the_ppu() {
     // 重新开启：从 LY=0 的行首开始。
     p.write_reg(STAT, 0x00);
     p.write_reg(LCDC, 0x91);
-    assert_eq!(run(&mut p, LINE_M - 1), 0);
+    // 开启后的第 0 行只有 452 dot（113 个 M-cycle）。
+    assert_eq!(run(&mut p, LINE_M - 2), 0);
     assert_eq!(p.read_reg(LY), 0);
     p.tick_mcycle();
     assert_eq!(p.read_reg(LY), 1);
-    assert_eq!(run_to_vblank(&mut p), 143 * LINE_M);
+    // VBlank 中断在 LY=144 的 dot 4。
+    assert_eq!(run_to_vblank(&mut p), 143 * LINE_M + 1);
 }
 
 #[test]
 fn lcd_on_line_0_reports_mode_0_then_mode_3() {
     let mut p = Ppu::new();
     restart(&mut p);
-    for k in 0..LINE_M {
-        let want = if k < 20 {
-            0
-        } else if k < 63 {
-            3
-        } else {
-            0
-        };
+    for k in 0..LINE_M - 1 {
+        let want = if (20..63).contains(&k) { 3 } else { 0 };
         assert_eq!(mode(&p), want, "M-cycle {k}");
+        assert_eq!(p.read_reg(LY), 0);
         p.tick_mcycle();
     }
+    // 第 1 行从开启后 452 dot 开始；dot 0 仍读 mode 0，dot 4 起 mode 2。
+    assert_eq!((p.read_reg(LY), mode(&p)), (1, 0));
+    p.tick_mcycle();
     assert_eq!(mode(&p), 2);
-    assert_eq!(p.read_reg(LY), 1);
 }
 
 #[test]

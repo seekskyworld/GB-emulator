@@ -35,6 +35,23 @@ use crate::{Frame, Peripheral};
 /// APU 寄存器与波形 RAM（FF10–FF3F）的字节数。
 const APU_LEN: usize = 0x30;
 
+/// NR52（FF26）在 APU 存储中的下标。
+const NR52: usize = 0x16;
+
+/// FF10–FF2F 的读掩码：读出值 = 存储值 | 掩码。只写位（长度计时器、周期、触发位）与未使用的位读 1
+/// （Pan Docs Audio_Registers 各寄存器的位图；FF15、FF1F、FF27–FF2F 整个未使用）。
+/// 波形 RAM（FF30–FF3F）可正常读写，不加掩码。
+const APU_READ_OR: [u8; 0x20] = [
+    0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR10 NR11 NR12 NR13 NR14
+    0xFF, // FF15
+    0x3F, 0x00, 0xFF, 0xBF, // NR21 NR22 NR23 NR24
+    0x7F, 0xFF, 0x9F, 0xFF, 0xBF, // NR30 NR31 NR32 NR33 NR34
+    0xFF, // FF1F
+    0xFF, 0x00, 0x00, 0xBF, // NR41 NR42 NR43 NR44
+    0x00, 0x00, 0x70, // NR50 NR51 NR52（bit6–4 未使用；bit3–0 为只读的声道状态）
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // FF27–FF2F
+];
+
 /// APU 区（FF10–FF3F）的开机值（Power_Up_Sequence 的 DMG 列；表中未列出的地址与未使用的地址读 0xFF）。
 /// 波形 RAM（FF30–FF3F）开机内容不确定，取 0x00。
 fn apu_power_up() -> [u8; APU_LEN] {
@@ -75,7 +92,8 @@ pub struct Bus {
     pub(crate) cart: Box<dyn Cart>,
     pub(crate) wram: Box<[u8; 0x2000]>,
     pub(crate) hram: [u8; 0x7F],
-    /// FF10–FF3F：APU 寄存器只做可读写存储（不发声，PLAN §1.1）。
+    /// FF10–FF3F：APU 寄存器只做带读掩码的存储（不发声，PLAN §1.1）。NR52 的 bit3–0 是声道状态：
+    /// 开机为 CH1 on（0x1），写入不能改动，关闭 APU（bit7=0）时清零；因为不发声，触发声道不会置位。
     pub(crate) apu: [u8; APU_LEN],
     pub(crate) ints: Interrupts,
     pub(crate) timer: Timer,
@@ -124,18 +142,31 @@ impl Bus {
         self.serial.take_output()
     }
 
-    /// 无副作用读，与 `read` 共用映射但不推进时钟。
+    /// 无副作用读，与 `read` 共用映射但不推进时钟。VRAM/OAM 返回真实内容，不受 PPU 的访问封锁影响（D031）。
     pub fn peek(&self, addr: u16) -> u8 {
+        self.read_mem(addr, false)
+    }
+
+    /// 读访问的映射（不推进时钟）。`cpu` 为真时是 CPU 的读：VRAM/OAM 受 PPU 的访问封锁（D031）。
+    fn read_mem(&self, addr: u16, cpu: bool) -> u8 {
         match addr {
             0x0000..=0x7FFF => self.cart.read_rom(addr),
-            0x8000..=0x9FFF => self.ppu.read_vram(addr),
+            0x8000..=0x9FFF => {
+                if cpu {
+                    self.ppu.read_vram(addr)
+                } else {
+                    self.ppu.peek_vram(addr)
+                }
+            }
             0xA000..=0xBFFF => self.cart.read_ram(addr),
             0xC000..=0xFDFF => self.wram[(addr & 0x1FFF) as usize],
             0xFE00..=0xFE9F => {
                 if self.dma.oam_blocked() {
                     0xFF
-                } else {
+                } else if cpu {
                     self.ppu.read_oam(addr)
+                } else {
+                    self.ppu.peek_oam(addr)
                 }
             }
             0xFEA0..=0xFEFF => {
@@ -176,7 +207,11 @@ impl Bus {
             0xFF01..=0xFF02 => self.serial.read_reg(addr),
             0xFF04..=0xFF07 => self.timer.read_reg(addr),
             0xFF0F => self.ints.read_if(),
-            0xFF10..=0xFF3F => self.apu[(addr - 0xFF10) as usize],
+            0xFF10..=0xFF2F => {
+                let i = (addr - 0xFF10) as usize;
+                self.apu[i] | APU_READ_OR[i]
+            }
+            0xFF30..=0xFF3F => self.apu[(addr - 0xFF10) as usize],
             0xFF40..=0xFF45 | 0xFF47..=0xFF4B => self.ppu.read_reg(addr),
             0xFF46 => self.dma.read_reg(),
             _ => 0xFF,
@@ -189,8 +224,18 @@ impl Bus {
             0xFF01..=0xFF02 => self.serial.write_reg(addr, v),
             0xFF04..=0xFF07 => self.timer.write_reg(addr, v),
             0xFF0F => self.ints.write_if(v),
+            0xFF26 => {
+                // bit7 可写；bit3–0 只读，关闭 APU 时清零。
+                let status = if v & 0x80 != 0 { self.apu[NR52] & 0x0F } else { 0 };
+                self.apu[NR52] = (v & 0x80) | status;
+            }
             0xFF10..=0xFF3F => self.apu[(addr - 0xFF10) as usize] = v,
-            0xFF40..=0xFF45 | 0xFF47..=0xFF4B => self.ppu.write_reg(addr, v),
+            0xFF40..=0xFF45 | 0xFF47..=0xFF4B => {
+                self.ppu.write_reg(addr, v);
+                // 写 STAT/LYC/LCDC 可能立刻让 STAT 中断线上升：在写入的同一个 M-cycle 进 IF。
+                let req = self.ppu.take_irq();
+                self.ints.request(req);
+            }
             0xFF46 => self.dma.write_reg(v),
             _ => {}
         }
@@ -208,6 +253,8 @@ impl Bus {
     /// 推进 1 个 M-cycle（D002：先推进外设，再由调用方执行访问）。全机唯一的时钟推进点。
     fn tick(&mut self) {
         let mut req = self.timer.tick_mcycle();
+        // 串口的 8192 Hz 时钟取自系统计数器（定时器持有），先交给串口再推进它。
+        self.serial.set_system_counter(self.timer.counter());
         req |= self.serial.tick_mcycle();
         req |= self.joypad.tick_mcycle();
         req |= self.ppu.tick_mcycle();
@@ -223,7 +270,7 @@ impl Bus {
 impl CpuBus for Bus {
     fn read(&mut self, addr: u16) -> u8 {
         self.tick();
-        self.peek(addr)
+        self.read_mem(addr, true)
     }
 
     fn write(&mut self, addr: u16, v: u8) {
