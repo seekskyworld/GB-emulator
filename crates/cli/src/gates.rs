@@ -26,6 +26,8 @@ pub const MOONEYE_SECS: f64 = 30.0;
 pub const MOONEYE_DIR: &str = "mooneye/mts-20260714-0944-31510e1";
 /// Mooneye 的组名（`--only MOONEYE`、汇总行）。
 pub const MOONEYE: &str = "MOONEYE";
+/// Blargg 判定结束后、截图之前多跑的帧数（只影响截图，不影响判定）。
+pub const BLARGG_SCREENSHOT_FRAMES: u32 = 30;
 /// gates.json 里每个 ROM 保存的串口文本上限。
 pub const SERIAL_JSON_MAX: usize = 2048;
 
@@ -268,13 +270,14 @@ pub fn run_blargg(e: &Entry, rom: Vec<u8>) -> RomResult {
     let collection = e.is_collection();
     let max = e.max_frames();
     let mut p = Progress::default();
+    let mut machine: Option<Machine> = None;
     let r = catch(|| -> Result<RunEnd, String> {
-        let mut m = Machine::new(rom).map_err(|err| format!("cart: {err}"))?;
+        let m = machine.insert(Machine::new(rom).map_err(|err| format!("cart: {err}"))?);
         let mut stepper = FrameStepper::new();
         let mut seen_at: Option<u64> = None;
         let mut end = RunEnd::Timeout { frames: max };
         while p.frames < max {
-            stepper.run_frame(&mut m, &mut p.trace)?;
+            stepper.run_frame(m, &mut p.trace)?;
             p.frames += 1;
             let new = m.take_serial();
             if !new.is_empty() {
@@ -306,6 +309,20 @@ pub fn run_blargg(e: &Entry, rom: Vec<u8>) -> RomResult {
     let end = fold_end(r);
     let text = String::from_utf8_lossy(&p.serial).into_owned();
     let verdict = judge::judge_blargg(&text, collection, &end);
+    // 判定已定（D017）。正常结束时再跑 BLARGG_SCREENSHOT_FRAMES 帧只为截图：屏幕比串口晚刷出最后一行。
+    // 这几帧的串口、轨迹与帧数都不进结果；期间若 panic，保留判定时的截图，结果不变。
+    if end == RunEnd::Finished {
+        if let Some(mut m) = machine {
+            if let Ok(frame) = catch(move || {
+                for _ in 0..BLARGG_SCREENSHOT_FRAMES {
+                    m.run_frame();
+                }
+                m.frame().to_vec()
+            }) {
+                p.frame = Some(frame);
+            }
+        }
+    }
     finish(e, p, end, verdict, None)
 }
 
