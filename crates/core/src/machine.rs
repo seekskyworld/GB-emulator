@@ -10,8 +10,8 @@ use crate::{Frame, FRAME_T};
 
 /// 存档文件头的 magic（PLAN §3.8）。
 pub const STATE_MAGIC: &[u8; 7] = b"GBEMUST";
-/// 存档格式版本；任何模块的 `Snapshot` 布局变化都要加 1。
-pub const STATE_VERSION: u16 = 1;
+/// 存档格式版本；任何模块的 `Snapshot` 布局变化都要加 1。2：串口改由系统计数器驱动（SERI 布局变化）。
+pub const STATE_VERSION: u16 = 2;
 /// ROM 指纹长度：头部校验和 0x14D（1）+ 全局校验和 0x14E–0x14F（2）+ 标题 0x134–0x143（16）。
 pub const FINGERPRINT_LEN: usize = 19;
 
