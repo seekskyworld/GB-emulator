@@ -7,4 +7,5 @@ pub mod gates;
 pub mod json;
 pub mod judge;
 pub mod png;
+pub mod replay;
 pub mod report;

@@ -7,15 +7,16 @@ use std::time::Instant;
 
 use gb_cli::emu::{catch, FrameStepper, PcTrace};
 use gb_cli::gates::{self, Options};
-use gb_cli::{baseline, report};
+use gb_cli::{baseline, replay, report};
 use gb_cli::png;
 use gb_core::{Machine, Regs, SCREEN_H, SCREEN_W};
 
 const USAGE: &str = "\
 usage:
   gb-cli run <rom> [--frames N] [--png out.png] [--serial] [--until-ld-b-b] [--trace]
-  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR] [--mooneye] [--baseline FILE] [--update-baseline]
+  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR] [--mooneye] [--replay [--strict-replay]] [--baseline FILE] [--update-baseline]
   gb-cli bench <rom> [--frames N]
+  gb-cli replay <rom> --script ACTIONS.json (--record OUT.json | --verify REF.json) [--png last.png]
 env: GBEMU_REFS (default ./refs), GB_TRACE=1 (same as --trace)";
 
 fn main() -> ExitCode {
@@ -29,6 +30,7 @@ fn main() -> ExitCode {
         "run" => cmd_run(rest),
         "gates" => cmd_gates(rest),
         "bench" => cmd_bench(rest),
+        "replay" => cmd_replay(rest),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
             Ok(ExitCode::SUCCESS)
@@ -221,7 +223,11 @@ fn refs_dir() -> PathBuf {
 }
 
 fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
-    let a = Args::parse(raw, &["only", "threads", "out", "baseline"], &["fast", "update-baseline", "mooneye"])?;
+    let a = Args::parse(
+        raw,
+        &["only", "threads", "out", "baseline", "replay-ref", "replay-script"],
+        &["fast", "update-baseline", "mooneye", "replay", "strict-replay"],
+    )?;
     if !a.positional.is_empty() {
         return Err(format!("unexpected argument `{}`", a.positional[0]));
     }
@@ -231,8 +237,8 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
             let groups: Vec<String> =
                 v.split(',').map(|g| g.trim().to_ascii_uppercase()).filter(|g| !g.is_empty()).collect();
             for g in &groups {
-                if !gates::GROUPS.contains(&g.as_str()) && g != gates::MOONEYE {
-                    return Err(format!("--only: unknown group `{g}` (known: G1,G2,G3,G4,MOONEYE)"));
+                if !gates::GROUPS.contains(&g.as_str()) && g != gates::MOONEYE && g != replay::GROUP {
+                    return Err(format!("--only: unknown group `{g}` (known: G1,G2,G3,G4,MOONEYE,POKERED-REPLAY)"));
                 }
             }
             Some(groups)
@@ -243,13 +249,17 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
         Some(o) => PathBuf::from(o),
         None => std::env::current_dir().unwrap_or_default().join("reports"),
     };
-    let opts = Options {
+    let want_replay = a.has("replay") || only.as_ref().is_some_and(|g| g.iter().any(|x| x == replay::GROUP));
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let mut opts = Options {
         fast: a.has("fast"),
         only,
         threads,
         refs: refs_dir(),
         out,
         mooneye: a.has("mooneye"),
+        replay: None,
+        strict_replay: a.has("strict-replay"),
         baseline: a.value("baseline").map(PathBuf::from),
         update_baseline: a.has("update-baseline"),
     };
@@ -284,8 +294,22 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
             return Ok(ExitCode::FAILURE);
         }
     };
+    // POKERED-REPLAY 与 ROM 清单并行（单线程约 0.5 秒）。
+    let replay_job = want_replay.then(|| {
+        let rom = match std::env::var_os("GBEMU_POKERED") {
+            Some(p) if !p.is_empty() => PathBuf::from(p),
+            _ => cwd.join("roms/pokered.gb"),
+        };
+        let script = a.value("replay-script").map(PathBuf::from).unwrap_or_else(|| cwd.join("tools/pokered-replay-actions.json"));
+        let reference = a.value("replay-ref").map(PathBuf::from).unwrap_or_else(|| cwd.join("reports/pokered-replay.json"));
+        std::thread::spawn(move || replay::gate(&rom, &script, &reference))
+    });
     let results = gates::run_all(&entries, &opts.refs, opts.threads);
-    let current = gates::results_json(&results, opts.fast, opts.only.as_deref());
+    opts.replay = replay_job.map(|h| {
+        h.join().unwrap_or_else(|_| replay::Status::Changed("replay thread panicked".to_string()))
+    });
+    let mut current = gates::results_json(&results, opts.fast, opts.only.as_deref());
+    gates::attach_replay(&mut current, &results, opts.replay.as_ref(), opts.strict_replay);
 
     // 有旧基线就比较（包括只给 --update-baseline、默认基线已存在的情况），保证基线只升不降。
     let regressions = match &old_baseline {
@@ -328,12 +352,90 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
     }
 
     let mut first: Vec<String> = regressions.iter().map(|r| format!("REGRESSION {r}")).collect();
+    // 回放：默认只 WARN（不计 REGRESSION、不影响退出码）；--strict-replay 时算失败。
+    match &opts.replay {
+        Some(replay::Status::Changed(d)) if opts.strict_replay => {
+            errors.push(format!("ERROR {} changed: {}", replay::GROUP, gb_cli::judge::clip(d, 120)))
+        }
+        Some(replay::Status::Changed(d)) => {
+            first.push(format!("WARN {} changed: {}", replay::GROUP, gb_cli::judge::clip(d, 120)))
+        }
+        Some(replay::Status::Skip(d)) => first.push(format!("SKIP {} {}", replay::GROUP, gb_cli::judge::clip(d, 120))),
+        _ => {}
+    }
     first.extend(errors.iter().cloned());
     first.extend(notes);
-    for line in gates::stdout_lines(&results, &first) {
+    let mut lines = gates::stdout_lines(&results, &first);
+    lines[0] = gates::summary_with_replay(&results, opts.replay.as_ref());
+    for line in lines {
         println!("{line}");
     }
     Ok(ExitCode::from(gates::exit_code(&results, &regressions, !errors.is_empty())))
+}
+
+fn cmd_replay(raw: &[String]) -> Result<ExitCode, String> {
+    let a = Args::parse(raw, &["script", "record", "verify", "png"], &[])?;
+    let [rom_path] = a.positional.as_slice() else {
+        return Err("replay needs exactly one ROM path".into());
+    };
+    let script_path = a.value("script").ok_or("replay needs --script")?;
+    let (record, verify) = (a.value("record"), a.value("verify"));
+    if record.is_some() == verify.is_some() {
+        return Err("replay needs exactly one of --record / --verify".into());
+    }
+    let rom = std::fs::read(rom_path).map_err(|e| format!("cannot read {rom_path}: {e}"))?;
+    let text = std::fs::read_to_string(script_path).map_err(|e| format!("cannot read {script_path}: {e}"))?;
+    let steps = replay::parse_script(&text).map_err(|e| format!("{script_path}: {e}"))?;
+    let rec = match replay::run(rom, &steps) {
+        Ok(r) => r,
+        Err(e) => {
+            println!("ERROR replay failed: {e}");
+            return Ok(ExitCode::FAILURE);
+        }
+    };
+    if let Some(p) = a.value("png") {
+        png::write_gray(Path::new(p), SCREEN_W as u32, SCREEN_H as u32, &rec.last_frame)
+            .map_err(|e| format!("cannot write {p}: {e}"))?;
+    }
+    for c in &rec.checkpoints {
+        println!(
+            "frame {:5}  map {:#04x}  y {:3}  x {:3}  name {:<8} party {}  hash {:016x}",
+            c.frame,
+            c.map,
+            c.y,
+            c.x,
+            replay::decode_name(&c.player_name),
+            c.party_count,
+            c.frame_hash
+        );
+    }
+    if let Some(out) = record {
+        let v = replay::to_json(&rec, script_path);
+        if let Some(dir) = Path::new(out).parent() {
+            if !dir.as_os_str().is_empty() {
+                std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+            }
+        }
+        std::fs::write(out, v.to_pretty()).map_err(|e| format!("cannot write {out}: {e}"))?;
+        println!("recorded {} checkpoints over {} frames to {out}", rec.checkpoints.len(), rec.frames);
+        return Ok(ExitCode::SUCCESS);
+    }
+    let ref_path = verify.unwrap();
+    let reference = std::fs::read_to_string(ref_path)
+        .map_err(|e| e.to_string())
+        .and_then(|t| gb_cli::json::parse(&t))
+        .and_then(|v| replay::from_json(&v))
+        .map_err(|e| format!("{ref_path}: {e}"))?;
+    match replay::compare(&reference, &rec) {
+        None => {
+            println!("replay ok: {} checkpoints over {} frames match {ref_path}", rec.checkpoints.len(), rec.frames);
+            Ok(ExitCode::SUCCESS)
+        }
+        Some(d) => {
+            println!("MISMATCH {d}");
+            Ok(ExitCode::FAILURE)
+        }
+    }
 }
 
 fn cmd_bench(raw: &[String]) -> Result<ExitCode, String> {

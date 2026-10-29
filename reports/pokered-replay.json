@@ -1,0 +1,159 @@
+{
+  "rom": "POKEMON RED hdr=20 global=91E6",
+  "script": "tools/pokered-replay-actions.json",
+  "script_hash": "49658d0b2ad53d39",
+  "interval": 300,
+  "frames": 4500,
+  "checkpoints": [
+    {
+      "frame": 300,
+      "frame_hash": "5385d86f62836d25",
+      "map": 0,
+      "y": 0,
+      "x": 0,
+      "player_name": "0000000000000000000000",
+      "player_name_text": "???????????",
+      "party_count": 0
+    },
+    {
+      "frame": 600,
+      "frame_hash": "b88f4b838b406352",
+      "map": 0,
+      "y": 0,
+      "x": 0,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 900,
+      "frame_hash": "308b05d735e64cff",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 1200,
+      "frame_hash": "24fe8833d48eadc8",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 1500,
+      "frame_hash": "7fba0fb9abe88221",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 1800,
+      "frame_hash": "87b4aed7731f2f89",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 2100,
+      "frame_hash": "c14efde4c5d1728a",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "8D888D93848D50928E8D98",
+      "player_name_text": "NINTEN",
+      "party_count": 0
+    },
+    {
+      "frame": 2400,
+      "frame_hash": "63172262e66dbdc5",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 2700,
+      "frame_hash": "bcf55b4a64f22541",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 3000,
+      "frame_hash": "f88d4dd59012d525",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 3300,
+      "frame_hash": "682fbb37f66a7f2c",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 3600,
+      "frame_hash": "8429d9847c6538d1",
+      "map": 38,
+      "y": 6,
+      "x": 3,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 3900,
+      "frame_hash": "e48f9fe108ea26f7",
+      "map": 38,
+      "y": 6,
+      "x": 5,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 4200,
+      "frame_hash": "fc39812922483cdd",
+      "map": 37,
+      "y": 2,
+      "x": 7,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    },
+    {
+      "frame": 4500,
+      "frame_hash": "a5bd155993aaf703",
+      "map": 37,
+      "y": 4,
+      "x": 7,
+      "player_name": "9184835080928750898082",
+      "player_name_text": "RED",
+      "party_count": 0
+    }
+  ]
+}

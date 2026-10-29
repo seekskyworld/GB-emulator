@@ -1,0 +1,10 @@
+[
+  {"note": "intro and title screen: START only (skips the intro, opens the main menu)", "buttons": "start", "hold": 4, "wait": 40, "repeat": 24},
+  {"note": "main menu: A confirms NEW GAME, then Oak's first lines", "buttons": "a", "hold": 4, "wait": 30, "repeat": 3},
+  {"note": "Oak's speech; DOWN+A picks the first preset names (RED, BLUE) in the naming menus", "buttons": "down+a", "hold": 4, "wait": 20, "repeat": 100},
+  {"note": "close any remaining text box without interacting", "buttons": "b", "hold": 4, "wait": 20, "repeat": 10},
+  {"note": "bedroom: walk right (stops against the furniture at x=5)", "buttons": "right", "hold": 80, "wait": 10},
+  {"note": "walk up to the top row (y=1)", "buttons": "up", "hold": 100, "wait": 10},
+  {"note": "walk right onto the stairs: warp to the 1st floor", "buttons": "right", "hold": 60, "wait": 120},
+  {"note": "1st floor: walk down, then idle so the last checkpoint (frame 4500) is the last frame", "buttons": "down", "hold": 50, "wait": 272}
+]
