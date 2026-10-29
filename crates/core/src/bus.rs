@@ -235,6 +235,8 @@ impl Bus {
     /// 推进 1 个 M-cycle（D002：先推进外设，再由调用方执行访问）。全机唯一的时钟推进点。
     fn tick(&mut self) {
         let mut req = self.timer.tick_mcycle();
+        // 串口的 8192 Hz 时钟取自系统计数器（定时器持有），先交给串口再推进它。
+        self.serial.set_system_counter(self.timer.counter());
         req |= self.serial.tick_mcycle();
         req |= self.joypad.tick_mcycle();
         req |= self.ppu.tick_mcycle();
