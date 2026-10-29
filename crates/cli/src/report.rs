@@ -112,7 +112,10 @@ fn file_stem(name: &str) -> String {
 fn gates_md(results: &[RomResult], opts: &Options, regressions: &[String]) -> String {
     let mut s = String::new();
     let _ = writeln!(s, "# gates\n");
-    let _ = writeln!(s, "**{}**\n", crate::gates::summary_line(results));
+    let _ = writeln!(s, "**{}**\n", crate::gates::summary_with_replay(results, opts.replay.as_ref()));
+    if let Some(st) = opts.replay.as_ref().filter(|st| !st.detail().is_empty()) {
+        let _ = writeln!(s, "{} {}: {}\n", crate::replay::GROUP, st.word(), st.detail());
+    }
     let mut flags = Vec::new();
     if opts.fast {
         flags.push("--fast".to_string());
@@ -181,7 +184,8 @@ pub fn write_reports(
 ) -> io::Result<()> {
     let out = &opts.out;
     std::fs::create_dir_all(out.join("logs"))?;
-    let json = results_json(results, opts.fast, opts.only.as_deref());
+    let mut json = results_json(results, opts.fast, opts.only.as_deref());
+    crate::gates::attach_replay(&mut json, results, opts.replay.as_ref(), opts.strict_replay);
     std::fs::write(out.join("gates.json"), json.to_pretty())?;
     std::fs::write(out.join("gates.md"), gates_md(results, opts, regressions))?;
 

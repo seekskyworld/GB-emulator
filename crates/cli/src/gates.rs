@@ -475,6 +475,37 @@ pub fn serial_head(serial: &[u8], max: usize) -> String {
     String::from_utf8_lossy(&serial[..serial.len().min(max)]).into_owned()
 }
 
+/// 汇总行加上回放结论（`REPLAY ok|changed|skip`）。
+pub fn summary_with_replay(results: &[RomResult], replay: Option<&crate::replay::Status>) -> String {
+    let base = summary_line(results);
+    match replay {
+        None => base,
+        Some(st) if results.is_empty() => format!("REPLAY {}", st.word()),
+        Some(st) => format!("{base} REPLAY {}", st.word()),
+    }
+}
+
+/// 把回放结论写进 gates.json（`summary` 与 `replay` 字段）。
+pub fn attach_replay(v: &mut Value, results: &[RomResult], replay: Option<&crate::replay::Status>, strict: bool) {
+    let Some(st) = replay else { return };
+    if let Value::Obj(kv) = v {
+        for (k, val) in kv.iter_mut() {
+            if k == "summary" {
+                *val = Value::Str(summary_with_replay(results, replay));
+            }
+        }
+        kv.push((
+            "replay".to_string(),
+            Value::Obj(vec![
+                ("group".to_string(), Value::Str(crate::replay::GROUP.to_string())),
+                ("status".to_string(), Value::Str(st.word().to_string())),
+                ("detail".to_string(), Value::Str(st.detail().to_string())),
+                ("strict".to_string(), Value::Bool(strict)),
+            ]),
+        ));
+    }
+}
+
 /// gates.json 内容。
 pub fn results_json(results: &[RomResult], fast: bool, only: Option<&[String]>) -> Value {
     let s = |x: &str| Value::Str(x.to_string());
@@ -544,6 +575,10 @@ pub struct Options {
     pub out: PathBuf,
     /// `--mooneye`：追加 Mooneye 全部 ROM。
     pub mooneye: bool,
+    /// POKERED-REPLAY 的结论（`--replay` 或 `--only POKERED-REPLAY` 时运行；未运行为 None）。
+    pub replay: Option<crate::replay::Status>,
+    /// `--strict-replay`：回放变化视为失败（默认只 WARN，不影响退出码、不计 REGRESSION）。
+    pub strict_replay: bool,
     /// `--baseline <file>`：棘轮基线（gates.json 格式）。
     pub baseline: Option<PathBuf>,
     /// `--update-baseline`：无 REGRESSION 时把本次结果合并进基线。
