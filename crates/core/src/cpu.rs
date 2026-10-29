@@ -17,7 +17,7 @@
 //!
 //! 中断（PLAN §3.3、Pan Docs Interrupts.md / halt.md）：每条指令结束后（即下一次 `step` 开始时）检查
 //! `IME && pending()`；分派共 5 M-cycle：2 个 idle、写 PCH、写 PCL、1 个 idle，PC=向量。
-//! 向量在写完 PCH 之后才决定：若那次写改动了 IE 使中断不再挂起，PC=0x0000（Mooneye ie_push）。
+//! 向量在写完 PCH 之后才决定：若压栈写到了 IE（SP 指向 0xFFFF）并使中断不再挂起，则 PC=0x0000、IF 不清除。
 //! `EI` 延迟一条指令生效（紧跟 `DI` 则不生效），`DI` 立即生效，`RETI` 立即置 IME。
 
 use crate::alu::{self, Flags};
@@ -112,7 +112,7 @@ impl Cpu {
                 bus.idle();
                 return;
             }
-            // 有挂起中断即唤醒，不额外耗时（Mooneye halt_ime0/1 timing：与一串 NOP 等待的时序相同）。
+            // 有挂起中断即唤醒，不额外耗时：与用一串 NOP 等待中断的时序相同（Pan Docs halt.md）。
             self.halted = false;
         }
         if self.ime && bus.pending() != 0 {
