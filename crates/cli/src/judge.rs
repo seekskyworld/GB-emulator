@@ -179,3 +179,34 @@ pub fn judge_acid2(
     };
     (verdict, diff)
 }
+
+/// Mooneye 通过时首次 LD B,B 处 B/C/D/E/H/L 的值（斐波那契数）。
+pub const MOONEYE_PASS_REGS: [u8; 6] = [3, 5, 8, 13, 21, 34];
+/// Mooneye 报告失败时 6 个寄存器的值。
+pub const MOONEYE_FAIL_BYTE: u8 = 0x42;
+
+/// Mooneye 判定：首次 LD B,B 时 B/C/D/E/H/L 恰为 3/5/8/13/21/34 才通过；
+/// 全为 0x42、超时（没有 LD B,B）、panic、出错或其他任何寄存器值都失败。
+pub fn judge_mooneye(end: &RunEnd, regs: Option<[u8; 6]>) -> Verdict {
+    match end {
+        RunEnd::Panic(msg) => return Verdict::Fail(format!("panic: {}", clip(msg, 90))),
+        RunEnd::Error(msg) => return Verdict::Fail(format!("error: {}", clip(msg, 90))),
+        RunEnd::Timeout { frames } => return Verdict::Fail(format!("timeout: no LD B,B within {frames} frames")),
+        RunEnd::Finished => {}
+    }
+    let Some(r) = regs else {
+        return Verdict::Fail("no registers captured at LD B,B".to_string());
+    };
+    if r == MOONEYE_PASS_REGS {
+        return Verdict::Pass;
+    }
+    let shown = format!(
+        "B={:02X} C={:02X} D={:02X} E={:02X} H={:02X} L={:02X}",
+        r[0], r[1], r[2], r[3], r[4], r[5]
+    );
+    if r.iter().all(|&b| b == MOONEYE_FAIL_BYTE) {
+        Verdict::Fail(format!("test reported failure ({shown})"))
+    } else {
+        Verdict::Fail(format!("unexpected registers at LD B,B ({shown})"))
+    }
+}

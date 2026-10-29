@@ -78,6 +78,9 @@ fn result(pass: bool) -> RomResult {
         end: RunEnd::Finished,
         diff: None,
         frame: None,
+        scored: true,
+        scope: String::new(),
+        regs: None,
     }
 }
 
@@ -108,4 +111,25 @@ fn merge_keeps_unrun_entries_and_overrides_run_ones() {
     // 没有旧基线时就是本次结果
     let fresh = merge(None, &cur).unwrap();
     assert_eq!(gb_cli::baseline::entries(&fresh).unwrap().len(), 3);
+}
+
+#[test]
+fn unscored_mooneye_entries_never_regress_or_fail_the_run() {
+    let m_in = "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim00.gb";
+    let m_out = "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-mgb.gb";
+    let base = parse(&format!(
+        r#"{{"results":[{{"group":"MOONEYE","rom":"{m_in}","pass":true,"scored":true}},{{"group":"MOONEYE","rom":"{m_out}","pass":true,"scored":false}}]}}"#
+    ))
+    .unwrap();
+    let cur = parse(&format!(
+        r#"{{"results":[{{"group":"MOONEYE","rom":"{m_in}","pass":false,"scored":true}},{{"group":"MOONEYE","rom":"{m_out}","pass":false,"scored":false}}]}}"#
+    ))
+    .unwrap();
+    // 纳入范围的 Mooneye 项照常参与棘轮；未纳入的不参与
+    assert_eq!(regressions(&base, &cur).unwrap(), vec![m_in.to_string()]);
+
+    let mut excluded = result(false);
+    excluded.scored = false;
+    assert_eq!(exit_code(&[result(true), excluded.clone()], &[], false), 0);
+    assert_eq!(exit_code(&[result(false), excluded], &[], false), 1);
 }
