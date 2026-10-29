@@ -1,0 +1,13 @@
+[package]
+name = "gb-cli"
+description = "Command line runner, gates and bench for gb-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "gb-cli"
+path = "src/main.rs"
+
+[dependencies]
+gb-core = { path = "../core" }
