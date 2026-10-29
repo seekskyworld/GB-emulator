@@ -187,3 +187,69 @@ fn snapshot_roundtrip_restores_registers_and_ram() {
     let mut e = cart::from_rom(synth_rom(128, 0x13, 0x03)).unwrap();
     assert!(load(&mut *e, &data).is_err());
 }
+
+// ---------- MBC1M 多卡带 ----------
+
+/// 1 MiB 的多卡带：bank 0 与 bank 0x10/0x20/0x30 各有一份相同的（非单一字节）标志区。
+fn multicart_rom(logo_in_bank_16: bool) -> Vec<u8> {
+    let mut rom = synth_rom(64, 0x01, 0x00);
+    let logo: Vec<u8> = (0..48u8).map(|i| i.wrapping_mul(37) ^ 0xC3).collect();
+    for game in 0..4usize {
+        if game == 1 && !logo_in_bank_16 {
+            continue;
+        }
+        let base = game * 0x10 * cart_util::BANK;
+        rom[base + 0x104..base + 0x134].copy_from_slice(&logo);
+    }
+    rom
+}
+
+#[test]
+fn multicart_uses_bits_4_5_for_upper_register() {
+    let mut c = cart::from_rom(multicart_rom(true)).unwrap();
+    // mode 0：0000 区固定 bank 0，4000 区 = 高位 << 4 | 低 4 位
+    c.write_rom(0x2000, 0x03);
+    c.write_rom(0x4000, 0x02);
+    assert_eq!(bank_of(&*c, 0x4000), 0x23);
+    assert_eq!(bank_of(&*c, 0x0000), 0x00);
+    // 5 位寄存器的 bit4 不参与选 bank
+    c.write_rom(0x2000, 0x13);
+    assert_eq!(bank_of(&*c, 0x4000), 0x23);
+    // 0→1 转换看完整的 5 位：0x10 不转换，低 4 位为 0 → bank 高位<<4 | 0
+    c.write_rom(0x2000, 0x10);
+    assert_eq!(bank_of(&*c, 0x4000), 0x20);
+    c.write_rom(0x2000, 0x00);
+    assert_eq!(bank_of(&*c, 0x4000), 0x21);
+    // mode 1：0000 区 = 高位 << 4（选游戏）
+    c.write_rom(0x6000, 0x01);
+    for g in 0..4u8 {
+        c.write_rom(0x4000, g);
+        assert_eq!(bank_of(&*c, 0x0000), g << 4, "game {g}");
+        assert_eq!(bank_of(&*c, 0x4000), (g << 4) | 1);
+    }
+}
+
+#[test]
+fn ordinary_1mib_mbc1_is_not_multicart() {
+    // bank 0x10 没有标志副本：普通接线，高位寄存器为 bit5–6
+    let mut c = cart::from_rom(multicart_rom(false)).unwrap();
+    c.write_rom(0x2000, 0x03);
+    c.write_rom(0x4000, 0x01);
+    assert_eq!(bank_of(&*c, 0x4000), 0x23);
+    c.write_rom(0x2000, 0x13);
+    assert_eq!(bank_of(&*c, 0x4000), 0x33, "bit4 of the 5-bit register is used");
+    c.write_rom(0x6000, 0x01);
+    assert_eq!(bank_of(&*c, 0x0000), 0x20);
+    // 标志区全为同一字节（如全 0 的合成 ROM）不判为多卡带
+    let mut z = cart::from_rom(synth_rom(64, 0x01, 0x00)).unwrap();
+    z.write_rom(0x2000, 0x13);
+    assert_eq!(bank_of(&*z, 0x4000), 0x13);
+    // 不是 1 MiB 的不判为多卡带
+    let mut big = synth_rom(128, 0x01, 0x00);
+    let logo: Vec<u8> = (0..48u8).collect();
+    big[0x104..0x134].copy_from_slice(&logo);
+    big[0x10 * cart_util::BANK + 0x104..0x10 * cart_util::BANK + 0x134].copy_from_slice(&logo);
+    let mut c = cart::from_rom(big).unwrap();
+    c.write_rom(0x2000, 0x13);
+    assert_eq!(bank_of(&*c, 0x4000), 0x13);
+}

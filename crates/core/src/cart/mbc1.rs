@@ -6,7 +6,12 @@
 //! - 4000–5FFF：2 位高位寄存器，作为 ROM bank 的 bit5–6；mode 1 时还作用于 0000 区与 RAM bank。
 //! - 6000–7FFF：banking mode（bit0）。
 //!
-//! bank 号按 ROM 实际 bank 数取模；RAM 最多 4×8 KiB，按实际大小取模。多卡带（MBC1M）未实现。
+//! bank 号按 ROM 实际 bank 数取模；RAM 最多 4×8 KiB，按实际大小取模。
+//!
+//! 多卡带（MBC1M，Pan Docs MBC1 一节末尾）：1 MiB 的卡带，bank 0x10 处另有一份带 Nintendo 标志的头部。
+//! 判定：ROM 恰为 64 个 bank，且 bank 0x10 的标志区（0x0104–0x0133）与 bank 0 的完全相同、并且不是同一字节
+//! 的重复。MBC1M 的高位寄存器作为 bank 号的 bit4–5，5 位寄存器的 bit4 不参与选 bank
+//! （但 0→1 转换仍看完整的 5 位）；mode 1 时 0000 区为 bank `高位 << 4`。
 
 use super::{load_ram, Cart, RAM_BANK, ROM_BANK};
 use crate::state::{Snapshot, StateError, StateReader, StateWriter};
@@ -24,6 +29,8 @@ pub struct Mbc1 {
     bank2: u8,
     /// banking mode（0 或 1）。
     mode: u8,
+    /// MBC1M 接线（由 ROM 内容判定，不进存档）。
+    multicart: bool,
     // 由寄存器推出的偏移，寄存器变化时重算。
     rom0_off: usize,
     romx_off: usize,
@@ -42,17 +49,28 @@ impl Mbc1 {
             bank1: 0,
             bank2: 0,
             mode: 0,
+            multicart: false,
             rom0_off: 0,
             romx_off: 0,
             ram_off: 0,
         };
+        m.multicart = is_multicart(&m.rom, rom_banks);
         m.remap();
         m
     }
 
+    /// 是否按 MBC1M（多卡带）接线。
+    pub fn is_multicart(&self) -> bool {
+        self.multicart
+    }
+
     fn remap(&mut self) {
         let low = if self.bank1 == 0 { 1 } else { self.bank1 as usize };
-        let high = (self.bank2 as usize) << 5;
+        let (low, high) = if self.multicart {
+            (low & 0x0F, (self.bank2 as usize) << 4)
+        } else {
+            (low, (self.bank2 as usize) << 5)
+        };
         let zero = if self.mode == 1 { high } else { 0 };
         self.rom0_off = (zero % self.rom_banks) * ROM_BANK;
         self.romx_off = ((high | low) % self.rom_banks) * ROM_BANK;
@@ -66,6 +84,21 @@ impl Mbc1 {
         }
         Some((self.ram_off + (addr as usize & 0x1FFF)) % self.ram.len())
     }
+}
+
+/// 头部 Nintendo 标志所在区间。
+const LOGO: std::ops::Range<usize> = 0x0104..0x0134;
+
+/// MBC1M 判定：64 个 bank，bank 0x10 的标志区与 bank 0 相同，且标志区不是单一字节的重复。
+fn is_multicart(rom: &[u8], rom_banks: usize) -> bool {
+    if rom_banks != 64 {
+        return false;
+    }
+    let logo0 = &rom[LOGO];
+    let base = 0x10 * ROM_BANK;
+    let logo16 = &rom[base + LOGO.start..base + LOGO.end];
+    let uniform = logo0.iter().all(|&b| b == logo0[0]);
+    !uniform && logo0 == logo16
 }
 
 impl Cart for Mbc1 {
