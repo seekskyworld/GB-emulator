@@ -424,14 +424,14 @@ fn mid_mode_3_write_splits_the_line_at_the_output_position() {
     p.write_reg(LCDC, 0x11);
     p.write_reg(LCDC, 0x91);
     run_to_line(&mut p, 80);
-    run(&mut p, 33); // dot 132：像素 0..40 已输出（第 x 个像素在 dot 92+x）
+    run(&mut p, 33); // dot 132：像素 0..36 已输出（mode 3 从 dot 84 开始，第 x 个像素在 dot 96+x）
     assert_eq!(p.read_reg(0xFF41) & 3, 3);
     p.write_reg(BGP, 0xE7); // 色号 1 → 1，色号 0 → 3
     p.write_reg(BGP, 0xE8); // 同一 dot 内再写一次：色号 1 → 2
     run_to_vblank(&mut p);
     assert_frame(p.frame(), |x, y| match y {
         0..=79 => g(1),
-        80 if x < 40 => g(1),
+        80 if x < 36 => g(1),
         _ => g(2),
     });
 }

@@ -2,8 +2,8 @@
 //!
 //! 冻结部分（D001）：`Cart` trait、`from_rom`、`CartError`（可新增变体）。
 //! `from_rom` 按头部 0x147 选择类型、按 0x149 分配 RAM；bank 号按 ROM 实际 bank 数取模。
-//! 已实现：ROM only（0x00，以及 0x08/0x09 ROM+RAM）、MBC1（0x01–0x03）、MBC3（0x0F–0x13）。
-//! MBC2（0x05–0x06）、MBC5（0x19–0x1E）在 T50b 补齐，之前返回 `CartError::UnsupportedType`。
+//! 已实现：ROM only（0x00，以及 0x08/0x09 ROM+RAM）、MBC1（0x01–0x03，含 MBC1M 多卡带）、
+//! MBC2（0x05–0x06）、MBC3（0x0F–0x13）、MBC5（0x19–0x1E）。其余类型返回 `CartError::UnsupportedType`。
 
 mod mbc1;
 mod mbc2;
@@ -15,7 +15,9 @@ use std::fmt;
 use crate::state::{Snapshot, StateError, StateReader, StateWriter};
 
 pub use mbc1::Mbc1;
+pub use mbc2::Mbc2;
 pub use mbc3::Mbc3;
+pub use mbc5::Mbc5;
 
 /// 卡带：ROM 区 0000–7FFF 与外部 RAM 区 A000–BFFF。读方法必须无副作用（`peek` 也走它们）。
 pub trait Cart: Snapshot + Send {
@@ -90,8 +92,12 @@ pub fn from_rom(mut rom: Vec<u8>) -> Result<Box<dyn Cart>, CartError> {
         0x08 | 0x09 => (true, RAM_BANK),
         0x01 => (false, 0),
         0x02 | 0x03 => (true, 4 * RAM_BANK),
+        // MBC2 的 RAM 内置在 MBC 中，0x149 应为 0，忽略。
+        0x05 | 0x06 => (false, 0),
         0x0F | 0x11 => (false, 0),
         0x10 | 0x12 | 0x13 => (true, 4 * RAM_BANK),
+        0x19 | 0x1C => (false, 0),
+        0x1A | 0x1B | 0x1D | 0x1E => (true, 16 * RAM_BANK),
         _ => return Err(CartError::UnsupportedType(kind)),
     };
     let ram_len = if has_ram { ram_bytes(ram_code)?.min(ram_cap) } else { 0 };
@@ -99,7 +105,9 @@ pub fn from_rom(mut rom: Vec<u8>) -> Result<Box<dyn Cart>, CartError> {
     Ok(match kind {
         0x00 | 0x08 | 0x09 => Box::new(RomOnly::new(rom, ram_len)),
         0x01..=0x03 => Box::new(Mbc1::new(rom, banks, ram_len)),
-        _ => Box::new(Mbc3::new(rom, banks, ram_len, matches!(kind, 0x0F | 0x10))),
+        0x05 | 0x06 => Box::new(Mbc2::new(rom, banks)),
+        0x0F..=0x13 => Box::new(Mbc3::new(rom, banks, ram_len, matches!(kind, 0x0F | 0x10))),
+        _ => Box::new(Mbc5::new(rom, banks, ram_len, matches!(kind, 0x1C..=0x1E))),
     })
 }
 

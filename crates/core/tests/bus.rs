@@ -141,11 +141,52 @@ fn hram_read_write() {
 }
 
 #[test]
-fn apu_range_is_storage() {
+fn apu_registers_read_unused_and_write_only_bits_as_one() {
+    // Pan Docs Audio_Registers：每个寄存器读出时，只写位与未使用位为 1。
+    let masks: [(u16, u8); 31] = [
+        (0xFF10, 0x80), (0xFF11, 0x3F), (0xFF12, 0x00), (0xFF13, 0xFF), (0xFF14, 0xBF),
+        (0xFF15, 0xFF),
+        (0xFF16, 0x3F), (0xFF17, 0x00), (0xFF18, 0xFF), (0xFF19, 0xBF),
+        (0xFF1A, 0x7F), (0xFF1B, 0xFF), (0xFF1C, 0x9F), (0xFF1D, 0xFF), (0xFF1E, 0xBF),
+        (0xFF1F, 0xFF),
+        (0xFF20, 0xFF), (0xFF21, 0x00), (0xFF22, 0x00), (0xFF23, 0xBF),
+        (0xFF24, 0x00), (0xFF25, 0x00),
+        (0xFF27, 0xFF), (0xFF28, 0xFF), (0xFF29, 0xFF), (0xFF2A, 0xFF), (0xFF2B, 0xFF),
+        (0xFF2C, 0xFF), (0xFF2D, 0xFF), (0xFF2E, 0xFF), (0xFF2F, 0xFF),
+    ];
     let mut b = bus();
-    for addr in [0xFF10u16, 0xFF15, 0xFF26, 0xFF2F, 0xFF30, 0xFF3F] {
-        b.write(addr, 0x3C);
-        assert_eq!(b.read(addr), 0x3C, "{addr:04X}");
+    for (addr, mask) in masks {
+        b.write(addr, 0x00);
+        assert_eq!(b.read(addr), mask, "{addr:04X} after writing 00");
+        b.write(addr, 0xFF);
+        assert_eq!(b.read(addr), 0xFF, "{addr:04X} after writing FF");
+        b.write(addr, 0x5A);
+        assert_eq!(b.read(addr), 0x5A | mask, "{addr:04X} after writing 5A");
+    }
+}
+
+#[test]
+fn nr52_status_bits_are_read_only() {
+    let mut b = bus();
+    assert_eq!(b.read(0xFF26), 0xF1, "power-up: APU on, CH1 on");
+    b.write(0xFF26, 0x80);
+    assert_eq!(b.read(0xFF26), 0xF1, "writing bit7=1 keeps channel status");
+    b.write(0xFF26, 0x8E);
+    assert_eq!(b.read(0xFF26), 0xF1, "status bits cannot be written");
+    b.write(0xFF26, 0x00);
+    assert_eq!(b.read(0xFF26), 0x70, "APU off clears channel status; bits 6-4 read 1");
+    b.write(0xFF26, 0x8F);
+    assert_eq!(b.read(0xFF26), 0xF0);
+}
+
+#[test]
+fn wave_ram_is_plain_storage() {
+    let mut b = bus();
+    for (i, addr) in (0xFF30u16..=0xFF3F).enumerate() {
+        b.write(addr, (i as u8).wrapping_mul(0x11) ^ 0x0F);
+    }
+    for (i, addr) in (0xFF30u16..=0xFF3F).enumerate() {
+        assert_eq!(b.read(addr), (i as u8).wrapping_mul(0x11) ^ 0x0F, "{addr:04X}");
     }
 }
 
@@ -272,7 +313,7 @@ fn bus_snapshot_roundtrip() {
     assert_eq!(c.mcycles(), 0);
 }
 
-/// OAM DMA 由 Bus 驱动：从源页逐字节搬到 OAM（需要 ppu 通道的 T42 `Dma` 实现；空壳不搬运）。
+/// OAM DMA 由 Bus 驱动：从源页逐字节搬到 OAM，源页 ≥ 0xE0 时读 WRAM 镜像。
 #[test]
 fn oam_dma_copies_from_wram_and_echo() {
     let mut b = bus();
