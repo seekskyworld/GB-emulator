@@ -14,7 +14,7 @@ use gb_core::{Machine, Regs, SCREEN_H, SCREEN_W};
 const USAGE: &str = "\
 usage:
   gb-cli run <rom> [--frames N] [--png out.png] [--serial] [--until-ld-b-b] [--trace]
-  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR] [--baseline FILE] [--update-baseline]
+  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR] [--mooneye] [--baseline FILE] [--update-baseline]
   gb-cli bench <rom> [--frames N]
 env: GBEMU_REFS (default ./refs), GB_TRACE=1 (same as --trace)";
 
@@ -221,7 +221,7 @@ fn refs_dir() -> PathBuf {
 }
 
 fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
-    let a = Args::parse(raw, &["only", "threads", "out", "baseline"], &["fast", "update-baseline"])?;
+    let a = Args::parse(raw, &["only", "threads", "out", "baseline"], &["fast", "update-baseline", "mooneye"])?;
     if !a.positional.is_empty() {
         return Err(format!("unexpected argument `{}`", a.positional[0]));
     }
@@ -231,8 +231,8 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
             let groups: Vec<String> =
                 v.split(',').map(|g| g.trim().to_ascii_uppercase()).filter(|g| !g.is_empty()).collect();
             for g in &groups {
-                if !gates::GROUPS.contains(&g.as_str()) {
-                    return Err(format!("--only: unknown group `{g}` (known: G1,G2,G3,G4)"));
+                if !gates::GROUPS.contains(&g.as_str()) && g != gates::MOONEYE {
+                    return Err(format!("--only: unknown group `{g}` (known: G1,G2,G3,G4,MOONEYE)"));
                 }
             }
             Some(groups)
@@ -249,6 +249,7 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
         threads,
         refs: refs_dir(),
         out,
+        mooneye: a.has("mooneye"),
         baseline: a.value("baseline").map(PathBuf::from),
         update_baseline: a.has("update-baseline"),
     };
@@ -276,7 +277,13 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
         None
     };
 
-    let entries = gates::select(opts.only.as_deref(), opts.fast);
+    let entries = match gates::select_all(opts.only.as_deref(), opts.fast, opts.mooneye, &opts.refs) {
+        Ok(e) => e,
+        Err(e) => {
+            println!("ERROR mooneye refs missing ({e}), run tools/fetch_refs.sh");
+            return Ok(ExitCode::FAILURE);
+        }
+    };
     let results = gates::run_all(&entries, &opts.refs, opts.threads);
     let current = gates::results_json(&results, opts.fast, opts.only.as_deref());
 
