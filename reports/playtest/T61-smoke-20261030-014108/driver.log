@@ -1,0 +1,8 @@
+[scripted] url=http://localhost:8780 seconds=300.0 seed=1793295671 intro=auto
+[scripted] opening: phase 1 (START through intro/title)
+[scripted] opening: phase 2a (A: NEW GAME)
+[scripted] opening: phase 2b (DOWN+A: dialogue and preset names)
+[scripted] opening: names set (RED/BLUE)
+[scripted] opening: done
+[scripted] roam: random walk with periodic A/B
+[scripted] done: 40660 /action requests, 0 failed

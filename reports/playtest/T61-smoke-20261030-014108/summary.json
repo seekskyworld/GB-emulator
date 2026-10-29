@@ -1,0 +1,544 @@
+{
+  "meta": {
+    "run_id": "20261030-014108",
+    "driver": "script",
+    "minutes": 5.0,
+    "port": 8780,
+    "url": "http://localhost:8780",
+    "data_dir": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/reports/playtest/20261030-014108/data",
+    "git_head": "d6639cf+dirty",
+    "started": "2026-10-30T01:41:08",
+    "rom": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator/roms/pokered.gb",
+    "rom_sha1": "ea9bcae617fdf159b045185467ae58b2e4a48b9a",
+    "gbemu_lib": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/target/release/libgb_ffi.dylib (pinned copy /Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/reports/playtest/20261030-014108/data/gbemu-lib/libgb_ffi.dylib)",
+    "gbemu_lib_sha256": "9b940298cb478b72e64fa40eb2e97d8d5fdd75df9ffc2cfe69fc622ef08b72e4",
+    "server_cmd": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator/.venv/bin/python -m gbemu.launch serve --rom /Users/skyseek/Desktop/project/open/research-platform/GB-emulator/roms/pokered.gb --port 8780 --data-dir /Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/reports/playtest/20261030-014108/data",
+    "games_new": 200,
+    "driver_cmd": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator/.venv/bin/python /Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/tools/scripted_driver.py --url http://localhost:8780 --seconds 300 --log /Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/reports/playtest/20261030-014108/driver-actions.jsonl",
+    "ended": "2026-10-30T01:46:11",
+    "server_exit": null
+  },
+  "result": {
+    "verdict": "PASS",
+    "exit_code": 0,
+    "hard": [
+      {
+        "name": "samples taken",
+        "ok": true,
+        "detail": "31 samples"
+      },
+      {
+        "name": "server process alive throughout",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "/health always responds",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "/state always 200 with valid fields",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "/screenshot always a 160x144 PNG",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "frames advance after every /action",
+        "ok": true,
+        "detail": "40661 ok /action, 0 without frame advance, 0 failed"
+      },
+      {
+        "name": "/games/new called exactly once",
+        "ok": true,
+        "detail": "1 calls"
+      },
+      {
+        "name": "map or coordinates changed at least once",
+        "ok": true,
+        "detail": "3 distinct (map,x,y)"
+      },
+      {
+        "name": "no single-colour screen for more than 60s",
+        "ok": true,
+        "detail": "longest 0s"
+      }
+    ],
+    "warnings": [
+      "1 single-colour screenshot(s)"
+    ],
+    "scripted_seconds": 0,
+    "agent_rounds": 0,
+    "failed_rounds": 0,
+    "invalid_reason": ""
+  },
+  "final_stats": {
+    "backend": "GbEmuEmulator",
+    "frame_count": 2082780,
+    "pyboy_loaded": false,
+    "gbemu_lib": "/Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/play/reports/playtest/20261030-014108/data/gbemu-lib/libgb_ffi.dylib",
+    "pid": 87753,
+    "uptime_seconds": 300.4,
+    "actions_total": 40661,
+    "actions_ok": 40661,
+    "actions_failed": 0,
+    "actions_without_frame_advance": 0,
+    "last_action_time": 1793295971.331885,
+    "last_action_frames": 50,
+    "games_new_calls": 1,
+    "recent_actions": [
+      {
+        "t": 1793295970.87,
+        "status": 200,
+        "frames_before": 2079510,
+        "frames_after": 2079560,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.877,
+        "status": 200,
+        "frames_before": 2079560,
+        "frames_after": 2079610,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.884,
+        "status": 200,
+        "frames_before": 2079610,
+        "frames_after": 2079660,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.892,
+        "status": 200,
+        "frames_before": 2079660,
+        "frames_after": 2079710,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.899,
+        "status": 200,
+        "frames_before": 2079710,
+        "frames_after": 2079760,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.907,
+        "status": 200,
+        "frames_before": 2079760,
+        "frames_after": 2079810,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.914,
+        "status": 200,
+        "frames_before": 2079810,
+        "frames_after": 2079860,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.922,
+        "status": 200,
+        "frames_before": 2079860,
+        "frames_after": 2079910,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.929,
+        "status": 200,
+        "frames_before": 2079910,
+        "frames_after": 2079970,
+        "delta": 60
+      },
+      {
+        "t": 1793295970.936,
+        "status": 200,
+        "frames_before": 2079970,
+        "frames_after": 2080020,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.944,
+        "status": 200,
+        "frames_before": 2080020,
+        "frames_after": 2080070,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.95,
+        "status": 200,
+        "frames_before": 2080070,
+        "frames_after": 2080120,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.958,
+        "status": 200,
+        "frames_before": 2080120,
+        "frames_after": 2080170,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.965,
+        "status": 200,
+        "frames_before": 2080170,
+        "frames_after": 2080220,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.972,
+        "status": 200,
+        "frames_before": 2080220,
+        "frames_after": 2080270,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.979,
+        "status": 200,
+        "frames_before": 2080270,
+        "frames_after": 2080320,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.986,
+        "status": 200,
+        "frames_before": 2080320,
+        "frames_after": 2080370,
+        "delta": 50
+      },
+      {
+        "t": 1793295970.993,
+        "status": 200,
+        "frames_before": 2080370,
+        "frames_after": 2080420,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.0,
+        "status": 200,
+        "frames_before": 2080420,
+        "frames_after": 2080470,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.007,
+        "status": 200,
+        "frames_before": 2080470,
+        "frames_after": 2080520,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.015,
+        "status": 200,
+        "frames_before": 2080520,
+        "frames_after": 2080570,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.022,
+        "status": 200,
+        "frames_before": 2080570,
+        "frames_after": 2080620,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.029,
+        "status": 200,
+        "frames_before": 2080620,
+        "frames_after": 2080680,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.037,
+        "status": 200,
+        "frames_before": 2080680,
+        "frames_after": 2080730,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.044,
+        "status": 200,
+        "frames_before": 2080730,
+        "frames_after": 2080780,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.05,
+        "status": 200,
+        "frames_before": 2080780,
+        "frames_after": 2080830,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.057,
+        "status": 200,
+        "frames_before": 2080830,
+        "frames_after": 2080890,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.065,
+        "status": 200,
+        "frames_before": 2080890,
+        "frames_after": 2080940,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.072,
+        "status": 200,
+        "frames_before": 2080940,
+        "frames_after": 2081000,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.08,
+        "status": 200,
+        "frames_before": 2081000,
+        "frames_after": 2081050,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.088,
+        "status": 200,
+        "frames_before": 2081050,
+        "frames_after": 2081100,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.095,
+        "status": 200,
+        "frames_before": 2081100,
+        "frames_after": 2081150,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.102,
+        "status": 200,
+        "frames_before": 2081150,
+        "frames_after": 2081200,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.109,
+        "status": 200,
+        "frames_before": 2081200,
+        "frames_after": 2081250,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.116,
+        "status": 200,
+        "frames_before": 2081250,
+        "frames_after": 2081300,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.123,
+        "status": 200,
+        "frames_before": 2081300,
+        "frames_after": 2081350,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.13,
+        "status": 200,
+        "frames_before": 2081350,
+        "frames_after": 2081400,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.136,
+        "status": 200,
+        "frames_before": 2081400,
+        "frames_after": 2081450,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.143,
+        "status": 200,
+        "frames_before": 2081450,
+        "frames_after": 2081500,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.15,
+        "status": 200,
+        "frames_before": 2081500,
+        "frames_after": 2081550,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.157,
+        "status": 200,
+        "frames_before": 2081550,
+        "frames_after": 2081600,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.164,
+        "status": 200,
+        "frames_before": 2081600,
+        "frames_after": 2081660,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.172,
+        "status": 200,
+        "frames_before": 2081660,
+        "frames_after": 2081710,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.179,
+        "status": 200,
+        "frames_before": 2081710,
+        "frames_after": 2081760,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.185,
+        "status": 200,
+        "frames_before": 2081760,
+        "frames_after": 2081810,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.192,
+        "status": 200,
+        "frames_before": 2081810,
+        "frames_after": 2081860,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.199,
+        "status": 200,
+        "frames_before": 2081860,
+        "frames_after": 2081910,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.208,
+        "status": 200,
+        "frames_before": 2081910,
+        "frames_after": 2081960,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.217,
+        "status": 200,
+        "frames_before": 2081960,
+        "frames_after": 2082010,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.225,
+        "status": 200,
+        "frames_before": 2082010,
+        "frames_after": 2082060,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.231,
+        "status": 200,
+        "frames_before": 2082060,
+        "frames_after": 2082120,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.239,
+        "status": 200,
+        "frames_before": 2082120,
+        "frames_after": 2082170,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.246,
+        "status": 200,
+        "frames_before": 2082170,
+        "frames_after": 2082220,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.253,
+        "status": 200,
+        "frames_before": 2082220,
+        "frames_after": 2082270,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.261,
+        "status": 200,
+        "frames_before": 2082270,
+        "frames_after": 2082320,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.268,
+        "status": 200,
+        "frames_before": 2082320,
+        "frames_after": 2082370,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.275,
+        "status": 200,
+        "frames_before": 2082370,
+        "frames_after": 2082420,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.282,
+        "status": 200,
+        "frames_before": 2082420,
+        "frames_after": 2082470,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.29,
+        "status": 200,
+        "frames_before": 2082470,
+        "frames_after": 2082520,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.296,
+        "status": 200,
+        "frames_before": 2082520,
+        "frames_after": 2082570,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.304,
+        "status": 200,
+        "frames_before": 2082570,
+        "frames_after": 2082620,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.311,
+        "status": 200,
+        "frames_before": 2082620,
+        "frames_after": 2082680,
+        "delta": 60
+      },
+      {
+        "t": 1793295971.319,
+        "status": 200,
+        "frames_before": 2082680,
+        "frames_after": 2082730,
+        "delta": 50
+      },
+      {
+        "t": 1793295971.326,
+        "status": 200,
+        "frames_before": 2082730,
+        "frames_after": 2082780,
+        "delta": 50
+      }
+    ]
+  }
+}
