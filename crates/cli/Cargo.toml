@@ -5,6 +5,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+# 库目标供 crates/cli/tests/ 的单测使用（判定逻辑、PNG、棘轮与运行解耦）。
+[lib]
+name = "gb_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "gb-cli"
 path = "src/main.rs"
