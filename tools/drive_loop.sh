@@ -49,11 +49,25 @@ now() { date +%s; }
 END=$(( $(now) + SECONDS_TOTAL ))
 CHILD=""
 
+CUR_ROUND=""   # 进行中的 agent 轮次（被时间到中断时也要把会话 ID 记下来，R4）
+CUR_SID=""
+CUR_START=0
+CUR_BEFORE=-1
+
 cleanup() {
   if [ -n "$CHILD" ] && kill -0 "$CHILD" 2>/dev/null; then
     kill -TERM "$CHILD" 2>/dev/null
     sleep 2
     kill -KILL "$CHILD" 2>/dev/null
+  fi
+  if [ -n "$CUR_ROUND" ]; then
+    local dur=$(( $(now) - CUR_START )) after actions=-1
+    after="$(actions_total)"
+    if [ "$CUR_BEFORE" -ge 0 ] && [ "$after" -ge 0 ]; then actions=$(( after - CUR_BEFORE )); fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$CUR_ROUND" "$CUR_SID" "-" "$dur" "$actions" interrupted >> "$SESSIONS"
+    json_record kind=agent round="$CUR_ROUND" session_id="$CUR_SID" rc=-1 timeout=false seconds="$dur" \
+        actions="$actions" ok=true status=interrupted >> "$ROUNDS"
+    echo "[drive_loop] round $CUR_ROUND interrupted at end of run (session $CUR_SID)"
   fi
   echo "[drive_loop] stopped"
   exit 0
@@ -130,6 +144,7 @@ while [ "$(now)" -lt "$END" ]; do
   start=$(now)
 
   # prompt 走 stdin：--allowedTools 是可变参数，放在它后面的位置参数会被当成工具名。
+  CUR_ROUND="$ROUND"; CUR_SID="$sid"; CUR_START="$start"; CUR_BEFORE="$before"
   "$CLAUDE_BIN" -p --model "$MODEL" --effort "$EFFORT" --output-format json \
       --session-id "$sid" --permission-mode dontAsk --tools "Bash,Read" \
       --allowedTools "Bash(curl *localhost*)" "Read" < "$prompt" > "$out" 2> "$err" &
@@ -145,6 +160,7 @@ while [ "$(now)" -lt "$END" ]; do
   done
   wait "$CHILD"; rc=$?
   CHILD=""
+  CUR_ROUND=""
   dur=$(( $(now) - start ))
   after="$(actions_total)"
   if [ "$before" -ge 0 ] && [ "$after" -ge 0 ]; then actions=$(( after - before )); else actions=-1; fi
