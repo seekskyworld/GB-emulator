@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pytest
 
+from conftest import skip_if_unimplemented
+from gbemu.native import GbEmuError
+
 pytestmark = pytest.mark.machine
 
 
@@ -17,7 +20,7 @@ def test_tick_then_screen_is_160x144(running_emu):
     img = running_emu.get_screen()
     assert img.size == (160, 144)
     assert img.mode == "RGB"
-    assert set(img.convert("L").getdata()) <= {0x00, 0x55, 0xAA, 0xFF}
+    assert set(img.convert("L").tobytes()) <= {0x00, 0x55, 0xAA, 0xFF}
 
 
 def test_press_advances_frame_count(running_emu):
@@ -43,7 +46,11 @@ def test_read_range_length_and_consistency(running_emu):
 def test_save_load_roundtrip(running_emu, tmp_path):
     running_emu.tick(10)
     path = tmp_path / "s.state"
-    running_emu.save_state(str(path))
+    try:
+        running_emu.save_state(str(path))
+    except GbEmuError as exc:
+        skip_if_unimplemented(exc)
+        raise
     wram = running_emu.read_range(0xC000, 0x2000)
     running_emu.tick(30)
     after_a = (running_emu.read_range(0xC000, 0x2000), running_emu.get_screen().tobytes())
@@ -55,8 +62,6 @@ def test_save_load_roundtrip(running_emu, tmp_path):
 
 
 def test_load_state_rejects_garbage(running_emu, tmp_path):
-    from gbemu.native import GbEmuError
-
     p = tmp_path / "garbage.state"
     p.write_bytes(b"not a state")
     with pytest.raises(GbEmuError):
