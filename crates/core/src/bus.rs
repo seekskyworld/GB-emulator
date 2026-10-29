@@ -35,6 +35,23 @@ use crate::{Frame, Peripheral};
 /// APU 寄存器与波形 RAM（FF10–FF3F）的字节数。
 const APU_LEN: usize = 0x30;
 
+/// NR52（FF26）在 APU 存储中的下标。
+const NR52: usize = 0x16;
+
+/// FF10–FF2F 的读掩码：读出值 = 存储值 | 掩码。只写位（长度计时器、周期、触发位）与未使用的位读 1
+/// （Pan Docs Audio_Registers 各寄存器的位图；FF15、FF1F、FF27–FF2F 整个未使用）。
+/// 波形 RAM（FF30–FF3F）可正常读写，不加掩码。
+const APU_READ_OR: [u8; 0x20] = [
+    0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR10 NR11 NR12 NR13 NR14
+    0xFF, // FF15
+    0x3F, 0x00, 0xFF, 0xBF, // NR21 NR22 NR23 NR24
+    0x7F, 0xFF, 0x9F, 0xFF, 0xBF, // NR30 NR31 NR32 NR33 NR34
+    0xFF, // FF1F
+    0xFF, 0x00, 0x00, 0xBF, // NR41 NR42 NR43 NR44
+    0x00, 0x00, 0x70, // NR50 NR51 NR52（bit6–4 未使用；bit3–0 为只读的声道状态）
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // FF27–FF2F
+];
+
 /// APU 区（FF10–FF3F）的开机值（Power_Up_Sequence 的 DMG 列；表中未列出的地址与未使用的地址读 0xFF）。
 /// 波形 RAM（FF30–FF3F）开机内容不确定，取 0x00。
 fn apu_power_up() -> [u8; APU_LEN] {
@@ -75,7 +92,8 @@ pub struct Bus {
     pub(crate) cart: Box<dyn Cart>,
     pub(crate) wram: Box<[u8; 0x2000]>,
     pub(crate) hram: [u8; 0x7F],
-    /// FF10–FF3F：APU 寄存器只做可读写存储（不发声，PLAN §1.1）。
+    /// FF10–FF3F：APU 寄存器只做带读掩码的存储（不发声，PLAN §1.1）。NR52 的 bit3–0 是声道状态：
+    /// 开机为 CH1 on（0x1），写入不能改动，关闭 APU（bit7=0）时清零；因为不发声，触发声道不会置位。
     pub(crate) apu: [u8; APU_LEN],
     pub(crate) ints: Interrupts,
     pub(crate) timer: Timer,
@@ -176,7 +194,11 @@ impl Bus {
             0xFF01..=0xFF02 => self.serial.read_reg(addr),
             0xFF04..=0xFF07 => self.timer.read_reg(addr),
             0xFF0F => self.ints.read_if(),
-            0xFF10..=0xFF3F => self.apu[(addr - 0xFF10) as usize],
+            0xFF10..=0xFF2F => {
+                let i = (addr - 0xFF10) as usize;
+                self.apu[i] | APU_READ_OR[i]
+            }
+            0xFF30..=0xFF3F => self.apu[(addr - 0xFF10) as usize],
             0xFF40..=0xFF45 | 0xFF47..=0xFF4B => self.ppu.read_reg(addr),
             0xFF46 => self.dma.read_reg(),
             _ => 0xFF,
@@ -189,6 +211,11 @@ impl Bus {
             0xFF01..=0xFF02 => self.serial.write_reg(addr, v),
             0xFF04..=0xFF07 => self.timer.write_reg(addr, v),
             0xFF0F => self.ints.write_if(v),
+            0xFF26 => {
+                // bit7 可写；bit3–0 只读，关闭 APU 时清零。
+                let status = if v & 0x80 != 0 { self.apu[NR52] & 0x0F } else { 0 };
+                self.apu[NR52] = (v & 0x80) | status;
+            }
             0xFF10..=0xFF3F => self.apu[(addr - 0xFF10) as usize] = v,
             0xFF40..=0xFF45 | 0xFF47..=0xFF4B => self.ppu.write_reg(addr, v),
             0xFF46 => self.dma.write_reg(v),
