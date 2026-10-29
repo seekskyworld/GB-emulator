@@ -339,3 +339,28 @@ def test_drive_loop_records_interrupted_round(tmp_path):
     assert len(rows[1].split("\t")[1]) == 36
     rec = json.loads((run / "driver-rounds.jsonl").read_text().splitlines()[0])
     assert rec["status"] == "interrupted" and rec["ok"] is True
+
+
+def test_scripted_driver_recovers_from_stall(tmp_path):
+    port = free_port()
+    url = f"http://localhost:{port}"
+    rom = tmp_path / "fake.gb"
+    rom.write_bytes(b"\0" * 0x8000)
+    args = [str(TESTS / "fake_server.py"), "serve", "--rom", str(rom), "--port", str(port),
+            "--data-dir", str(tmp_path / "data")]
+    log = tmp_path / "actions.jsonl"
+    with Server(args, env_with_paths({"FAKE_NAMES": "1", "FAKE_STALL_AFTER": "300"}), tmp_path / "s.log") as srv:
+        wait_health(url, srv.proc)
+        r = subprocess.run([sys.executable, str(TOOLS / "scripted_driver.py"), "--url", url, "--seconds", "4",
+                            "--seed", "3", "--log", str(log)], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    recs = [json.loads(line) for line in log.read_text().splitlines()]
+    idx = [i for i, x in enumerate(recs) if x.get("note") == "recover_tilemap"]
+    assert idx, r.stdout
+    assert "recover_tilemap #1" in r.stdout
+    # the walk requests right before a recovery did not move; after it the player moves again
+    i = idx[0]
+    before = {(x["x"], x["y"]) for x in recs[i - scripted.STALL_MOVES:i]}
+    assert len(before) == 1
+    after = {(x["x"], x["y"]) for x in recs[i + 1:i + 30]}
+    assert len(after) > 1

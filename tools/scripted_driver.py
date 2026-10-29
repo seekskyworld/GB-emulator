@@ -31,6 +31,12 @@ import urllib.request
 from typing import Any, List, Optional, Tuple
 
 DIRECTIONS = ["up", "down", "left", "right"]
+# 卡死恢复（reports/scout/oaks-lab-stall.md）：游戏自身的竞态会让 PrepareOAMData 写越界到 wTileMap，
+# 主角被隐藏、四个方向都判为碰撞而自锁；START 再 B 会让游戏重建 wTileMap。服务端没有读任意地址的
+# 端点，所以只用"在大地图上（不在战斗/对话中）连续 STALL_MOVES 次走动坐标都不变"作为触发条件，
+# 并要求这期间四个方向都试过（避免在死胡同、墙角里误触发：那里总有一个方向能走）。
+STALL_MOVES = 8
+RECOVER_TILEMAP = ["press_start", "wait_30", "press_b", "wait_30"]
 NAME_RE = re.compile(r"^[A-Z]{1,7}$")
 # 新游戏开始时 WRAM 里已经写着这两个默认名字（实测：标题画面之后、起名之前 /state 就读到它们），
 # 所以"名字已设置"必须排除它们。
@@ -61,7 +67,7 @@ class Client:
         except Exception as e:  # noqa: BLE001
             return None, {"error": f"{type(e).__name__}: {e}"}
 
-    def action(self, actions: List[str]) -> Tuple[Optional[int], Optional[dict]]:
+    def action(self, actions: List[str], note: Optional[str] = None) -> Tuple[Optional[int], Optional[dict]]:
         t = time.time()
         status, js = self._req("POST", "/action", {"actions": actions})
         self.requests += 1
@@ -72,6 +78,8 @@ class Client:
             rec = {"t": round(t - self.t0, 2), "ms": round((time.time() - t) * 1000), "actions": actions,
                    "status": status}
             rec.update(summarize(state))
+            if note:
+                rec["note"] = note
             if status != 200:
                 rec["error"] = str(js)[:300]
             self.log.write(json.dumps(rec) + "\n")
@@ -124,12 +132,13 @@ class Driver:
         self.out = out
         self.last_state: Optional[dict] = None
         self.conn_fail_since: Optional[float] = None
+        self.recoveries = 0
 
     def time_left(self) -> bool:
         return time.time() < self.deadline
 
-    def act(self, actions: List[str]) -> Optional[dict]:
-        status, state = self.c.action(actions)
+    def act(self, actions: List[str], note: Optional[str] = None) -> Optional[dict]:
+        status, state = self.c.action(actions, note)
         if status is None:
             if self.conn_fail_since is None:
                 self.conn_fail_since = time.time()
@@ -199,14 +208,26 @@ class Driver:
         direction = self.rng.choice(DIRECTIONS)
         streak = 0
         n = 0
+        stalled = 0  # consecutive walk requests (overworld, no battle/dialog) without a position change
+        tried: set = set()  # directions tried during that streak
         while self.time_left():
             n += 1
             s = summarize(self.last_state)
             if s.get("battle"):
+                stalled, tried = 0, set()
                 self.act(self.battle_actions())
                 continue
             if s.get("dialog"):
+                stalled, tried = 0, set()
                 self.act(["press_a", "wait_20"])
+                continue
+            if stalled >= STALL_MOVES and len(tried) == len(DIRECTIONS):
+                self.recoveries += 1
+                self.say(f"recover_tilemap #{self.recoveries}: {stalled} walk requests in all 4 directions "
+                         f"without moving at "
+                         f"{position(self.last_state)}; START then B")
+                self.act(RECOVER_TILEMAP, note="recover_tilemap")
+                stalled, tried = 0, set()
                 continue
             if streak <= 0 or self.rng.random() < 0.15:
                 direction = self.rng.choice(DIRECTIONS)
@@ -220,6 +241,14 @@ class Driver:
             before = position(self.last_state)
             state = self.act(actions)
             streak -= steps
+            if state is not None:
+                after = summarize(state)
+                moved = position(state) != before
+                if moved or after.get("battle") or after.get("dialog"):
+                    stalled, tried = 0, set()
+                else:
+                    stalled += 1
+                    tried.add(direction)
             if state is not None and position(state) == before:
                 # blocked (or a menu/text ate the input): pick another direction next time
                 direction = self.rng.choice([d for d in DIRECTIONS if d != direction])
@@ -261,7 +290,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     except KeyboardInterrupt:
         pass
     finally:
-        drv.say(f"done: {client.requests} /action requests, {client.failures} failed")
+        drv.say(f"done: {client.requests} /action requests, {client.failures} failed, "
+                f"{drv.recoveries} recover_tilemap")
         if log:
             log.close()
     return 0
