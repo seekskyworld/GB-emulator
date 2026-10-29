@@ -1,0 +1,19 @@
+[drive_loop] url=http://localhost:8790 seconds=1800 model=global.anthropic.claude-sonnet-5-5 effort=high timeout=180s
+[drive_loop] round-001 session=e9f5e6f1-5017-4dd3-a950-755eeead9a10 rc=0 108s actions=9 status=ok
+[drive_loop] round-002 session=2d4922a7-9be3-4ae8-9671-fe2fd952826d rc=0 87s actions=5 status=ok
+[drive_loop] round-003 session=c0f1f834-f182-44cc-af20-f3621803201d rc=0 110s actions=6 status=ok
+[drive_loop] round-004 session=f16a6347-1308-4516-a143-0af62d45d311 rc=0 82s actions=5 status=ok
+[drive_loop] round-005 session=4a46a83d-a3ef-41b9-b786-b5df26c3985e rc=0 72s actions=8 status=ok
+[drive_loop] round-006 session=f60b5fae-b541-4564-831b-cbab45703433 rc=0 125s actions=10 status=ok
+[drive_loop] round-007 session=753a6490-5d32-4fca-9891-a2e7510976fd rc=0 111s actions=8 status=ok
+[drive_loop] round-008 session=99384983-5c03-4c08-8447-75c01a8754f8 rc=0 105s actions=6 status=ok
+[drive_loop] round-009 session=6b627025-1600-4ae8-bdd6-a328de8cd449 rc=0 136s actions=7 status=ok
+[drive_loop] round-010 session=da12a879-23f8-4068-b175-0db9d5f49e2f rc=0 101s actions=5 status=ok
+[drive_loop] round-011 session=e3b3344c-eb3e-49f9-9f55-0f60c5cd5499 rc=0 171s actions=10 status=ok
+[drive_loop] round-012 session=32104239-26e5-4496-a7d1-1a2ceaa280b7 rc=0 88s actions=7 status=ok
+[drive_loop] round-013 session=bdb51a43-7b13-478c-9837-8a47048c1ad6 rc=0 99s actions=9 status=ok
+[drive_loop] round-014 session=263a7862-d21a-4e4c-aa38-3189be2fd6f9 rc=0 161s actions=6 status=ok
+[drive_loop] round-015 session=884713cd-1796-437e-aa40-aaed2c5b6c69 rc=0 83s actions=5 status=ok
+[drive_loop] round-016 session=8bc3e143-86c9-47f7-abda-ff07a51ca09c rc=0 87s actions=6 status=ok
+[drive_loop] round 17 interrupted at end of run (session 4b6592ff-45f7-4e50-b0ba-4ca0bfd6ca0f)
+[drive_loop] stopped
