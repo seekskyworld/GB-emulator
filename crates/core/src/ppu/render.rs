@@ -3,11 +3,15 @@
 //! `render_span(x0, x1)` 用此刻的寄存器、VRAM、OAM 把当前行的像素 `x0..x1` 画到后缓冲；
 //! 何时调用见 `ppu.rs` 顶部的"渲染时机"。
 
-use super::Ppu;
+use super::{Ppu, MAX_LINE_OBJS};
 use crate::SCREEN_W;
 
 /// 调色板值 0..=3 对应的灰度（色号 0 = 白 = 0xFF）。
 const SHADES: [u8; 4] = [0xFF, 0xAA, 0x55, 0x00];
+
+/// 精灵像素缓冲的编码：bit0–1 色号（0 = 无精灵像素），bit2 = OBP1，bit3 = OBJ-to-BG priority。
+const OBJ_PAL1: u8 = 0x04;
+const OBJ_BEHIND_BG: u8 = 0x08;
 
 /// 用调色板寄存器把色号 0..=3 映射为灰度。
 fn shade(palette: u8, color: u8) -> u8 {
@@ -15,19 +19,98 @@ fn shade(palette: u8, color: u8) -> u8 {
 }
 
 impl Ppu {
-    /// OAM scan：T42 实现。
+    /// OAM scan：按 OAM 顺序选出 Y 命中当前行的前 10 个精灵（不论 X 是否可见，也不论 LCDC.1），
+    /// 再按 DMG 绘制优先级排序：X 小者在前，X 相同时 OAM 序号小者在前（`OAM.md`）。
     pub(super) fn oam_scan(&mut self) {
-        self.obj_count = 0;
+        let height = if self.lcdc & 0x04 != 0 { 16 } else { 8 };
+        let y = self.line as u16 + 16; // OAM 的 Y = 屏幕 y + 16
+        let mut n = 0;
+        for i in 0..40 {
+            let top = self.oam[i * 4] as u16;
+            if y >= top && y < top + height {
+                self.objs[n] = i as u8;
+                n += 1;
+                if n == MAX_LINE_OBJS {
+                    break;
+                }
+            }
+        }
+        // 稳定插入排序：X 相同的保持 OAM 顺序。
+        for i in 1..n {
+            let mut j = i;
+            while j > 0 && self.obj_x(self.objs[j - 1]) > self.obj_x(self.objs[j]) {
+                self.objs.swap(j - 1, j);
+                j -= 1;
+            }
+        }
+        self.obj_count = n as u8;
+    }
+
+    fn obj_x(&self, index: u8) -> u8 {
+        self.oam[index as usize * 4 + 1]
     }
 
     /// 把当前行的像素 `x0..x1` 画到后缓冲。
     pub(super) fn render_span(&mut self, x0: usize, x1: usize) {
         let mut bg = [0u8; SCREEN_W];
         self.bg_window_span(&mut bg, x0, x1);
+        let mut obj = [0u8; SCREEN_W];
+        if self.lcdc & 0x02 != 0 {
+            self.obj_span(&mut obj, x0, x1);
+        }
         let row = self.line as usize * SCREEN_W;
-        let bgp = self.bgp;
-        for (dst, &c) in self.back[row + x0..row + x1].iter_mut().zip(&bg[x0..x1]) {
-            *dst = shade(bgp, c);
+        let (bgp, obp0, obp1) = (self.bgp, self.obp0, self.obp1);
+        let dst = &mut self.back[row + x0..row + x1];
+        for ((d, &c), &o) in dst.iter_mut().zip(&bg[x0..x1]).zip(&obj[x0..x1]) {
+            // 精灵像素只在 OBJ-to-BG priority 置位且 BG/窗口色号为 1–3 时退到后面。
+            *d = if o != 0 && (o & OBJ_BEHIND_BG == 0 || c == 0) {
+                shade(if o & OBJ_PAL1 != 0 { obp1 } else { obp0 }, o & 3)
+            } else {
+                shade(bgp, c)
+            };
+        }
+    }
+
+    /// 本行选中的精灵在 `x0..x1` 内的像素：按绘制优先级依次填入，每个位置只取优先级最高的
+    /// 不透明像素（之后才与 BG 比较 priority，`OAM.md` "Drawing priority"）。
+    fn obj_span(&self, out: &mut [u8; SCREEN_W], x0: usize, x1: usize) {
+        let tall = self.lcdc & 0x04 != 0;
+        let height: i32 = if tall { 16 } else { 8 };
+        for &index in &self.objs[..self.obj_count as usize] {
+            let i = index as usize * 4;
+            let (top, ox, tile, attr) = (
+                self.oam[i],
+                self.oam[i + 1],
+                self.oam[i + 2],
+                self.oam[i + 3],
+            );
+            let mut row = self.line as i32 + 16 - top as i32;
+            if !(0..height).contains(&row) {
+                continue; // mode 3 中途改了 LCDC.2
+            }
+            if attr & 0x40 != 0 {
+                row = height - 1 - row; // Y 翻转作用于整个 8×16
+            }
+            // 8×16 忽略 tile 号 bit0：上半为 NN&$FE，下半为 NN|$01（row 8–15 自然落到下一个 tile）。
+            let tile = if tall { tile & 0xFE } else { tile } as usize;
+            let addr = tile * 16 + row as usize * 2;
+            let (lo, hi) = (self.vram[addr], self.vram[addr + 1]);
+            let left = ox as i32 - 8;
+            let flags = ((attr >> 2) & OBJ_PAL1) | ((attr >> 4) & OBJ_BEHIND_BG);
+            let sx0 = left.max(x0 as i32);
+            let sx1 = (left + 8).min(x1 as i32);
+            for sx in sx0..sx1 {
+                let slot = &mut out[sx as usize];
+                if *slot != 0 {
+                    continue;
+                }
+                let col = sx - left;
+                let bit = if attr & 0x20 != 0 { col } else { 7 - col };
+                let c = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1);
+                if c != 0 {
+                    *slot = c | flags;
+                }
+            }
         }
     }
 

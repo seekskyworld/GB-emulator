@@ -23,10 +23,10 @@
 //! # STAT 中断
 //!
 //! 内部 STAT 中断线 = (LYC=LY 且 bit6) OR (mode 0 且 bit3) OR (mode 1 且 bit4) OR (mode 2 且 bit5)，
-//! 只在其从 0 变为 1 时请求一次（Mooneye `stat_irq_blocking`）。DMG 上进入 LY=144 的第一个
-//! M-cycle 里 mode 2 源也有效（Mooneye `vblank_stat_intr-GS`）。
+//! 只在其从 0 变为 1 时请求一次；某个源保持为高时，其他源再变高不会再次触发（`STAT.md`、`Interrupt_Sources.md`）。
+//! DMG 上进入 LY=144 的第一个 M-cycle 里 mode 2 源也有效（与 VBlank 同时请求 STAT 中断）。
 //!
-//! # LCD 开关（`LCDC.md`；Mooneye `stat_lyc_onoff`、`lcdon_timing-GS`）
+//! # LCD 开关（`LCDC.md`、`STAT.md`）
 //!
 //! 关闭：LY=0、mode=0，前缓冲置为全白一次，此后 tick 不推进 PPU；LYC=LY 标志与中断线保持关闭前的值。
 //! 开启：从 LY=0 的行首开始，重新比较 LYC；这一行不做 OAM scan，dot 0–79 期间 STAT 报告 mode 0。
@@ -54,8 +54,7 @@ const MAX_LINE_OBJS: usize = 10;
 /// 开机（PC=0x0100）时 PPU 在第 153 行内的 dot 位置。
 ///
 /// Power_Up_Sequence.md 的 DMG 列给出 LY=0x00、STAT=0x85（mode 1、LYC=LY），即仍处于最后一个
-/// VBlank 行、LY 已读作 0。行内位置文档未给出；Mooneye `boot_hwio-dmgABCmgb` 在开机 4740 dot 后
-/// 读到 LY=0x0A，要求开机时距第 0 行开始不超过 180 dot。这里取 56 dot。
+/// VBlank 行、LY 已读作 0。行内的具体位置文档未给出，这里取距第 0 行开始 56 dot。
 const BOOT_DOT: u16 = LINE_DOTS - 56;
 
 /// PPU 在一行内所处的阶段（决定 STAT 的 mode 位与 STAT 中断源）。
@@ -387,7 +386,7 @@ impl Ppu {
         self.drawn_x = 0;
         self.obj_count = 0;
         self.front.fill(0xFF);
-        // LYC=LY 标志与 STAT 中断线保持关闭前的值（Mooneye stat_lyc_onoff）。
+        // LYC=LY 标志与 STAT 中断线保持关闭前的值：关闭期间比较电路不工作，重新开启时才再比较。
     }
 
     fn turn_on(&mut self) {
