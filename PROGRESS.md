@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 里程碑：M1–M5 完成，**G1–G5 完成**（tag `v1.0-gates` = 7558ce3，2026-10-30 02:23）；M6 Mooneye 94/94（tag `w4-mooneye-94`）；M7 交付进行中
-- gates 汇总（`reports/gates.json`，main）：`G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 94/94`
+- gates 汇总（`reports/gates.json`，main）：`G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 94/94 REPLAY ok`
 - G5 证据：`reports/playtest/T62-rc-gates-7558ce3/`（30 分钟、Sonnet 5.5 驾驶 22/22 轮、0 次 scripted 兜底；真新镇 → 常青市宝可梦中心）
 - 隐藏集证据（§4.5）：`reports/mooneye-raw-rc-gates/`（v1.0-gates 原样：MOONEYE 66/94，raw 67/115）
 - 通道（D004）：core、sys、ppu、platform、play；worktree 在 `/Users/skyseek/Desktop/project/open/research-platform/GB-emulator-lanes/<lane>`
@@ -44,17 +44,19 @@
 | T62 | **G5：30 分钟正式实玩** | T30,T43,T61 | integrator | W3 | done |
 | T50b | MBC2、MBC5 | T50 | platform | W4 | done |
 | T55 | 性能 ≥ 600 fps | T62 | platform（core 配合） | W4 | done |
-| T63 | 宝可梦确定性回放基线 `POKERED-REPLAY` | T62 | play | W4 | todo |
+| T63 | 宝可梦确定性回放基线 `POKERED-REPLAY` | T62 | play | W4 | done |
 | T70 | Mooneye 范围与计分 | T05b | platform | W4 | done |
 | T71 | Mooneye 迭代（加分） | T62,T70 | scout ×N + core/sys/ppu | W4 | done |
-| T80 | 评审（一次） | T62 | reviewer | W4 | todo |
-| T90 | 合规自查 | T62 | reviewer | W4 | todo |
-| T91 | 交付 | T80,T90 | integrator | W4 | todo |
+| T80 | 评审（一次） | T62 | reviewer | W4 | done |
+| T90 | 合规自查 | T62 | reviewer | W4 | done |
+| T91 | 交付 | T80,T90 | integrator | W4 | doing |
 
 ## Blockers
 
-- **B1（已结案，D032：游戏自身竞态，驾驶侧加恢复）宝可梦在大木研究所卡死**：play 的一次脚本驾驶日志可稳定复现——"Hey! Don't go away" 之后主角被模拟摇杆拉回 (4,5)，随后主角精灵 image index=0xFF、所有输入失效（游戏仍在运行）。v1.0-gates 的 30 分钟正式实玩没有触发。core（模拟器侧）与 scout（游戏反汇编侧）并行调查，复现材料在 `/tmp/gbemu-integrator/stall/`。
+- B1（已结案）宝可梦在大木研究所卡死：结论是游戏自身的竞态（`PrepareOAMData` 越界写入，污染 `wTileMap`），不是模拟器的问题（D032）。scout 与 core 各自独立追踪，结论一致。最小复现在 `reports/scout/oaks-lab-stall-repro/`。按 R6 核心代码不修，只在驾驶侧加检测与恢复（D033，已合入）。
 
 ## 下一步
 
-W4/M7：B1 根因与修复（G 轨，进 main 并补回归测试）→ W4 构建 30 分钟复核实玩（进行中）→ T63 回放基线 → T80 评审与 T90 合规自查（新开上下文的 reviewer）→ T91 交付（REPORT、sessions 导出）。
+T91 交付：
+- 评审（`reports/review.md`）中的必修项已处理：问题 1 → D034；问题 2 → T62 addendum；问题 9 → 本次更新。问题 3（pytest 竞态）与问题 4（STALL 告警）由 play 处理。
+- 然后完成 REPORT，在最终提交上跑一次全量 gates，正式导出 sessions。
