@@ -191,6 +191,10 @@ def test_scripted_names_detection():
     assert scripted.names_set(st)
     st["player"]["name"] = "???????????"
     assert not scripted.names_set(st)
+    st["player"]["name"], st["player"]["rival_name"] = "NINTEN", "SONY"  # defaults before naming
+    assert not scripted.names_set(st)
+    st["player"]["name"] = "RED"
+    assert not scripted.names_set(st)
     assert not scripted.names_set(None)
     assert scripted.position(good_state(x=4, y=5)) == (38, 4, 5)
 
@@ -316,3 +320,22 @@ def test_drive_loop_round_timeout(tmp_path):
     assert r.returncode == 0, r.stdout + r.stderr
     first = json.loads((run / "driver-rounds.jsonl").read_text().splitlines()[0])
     assert first["timeout"] is True and first["status"] == "timeout" and first["ok"] is False
+
+
+def test_drive_loop_records_interrupted_round(tmp_path):
+    import signal
+    import time
+
+    run = tmp_path / "run"
+    env = env_with_paths({"PORT": str(free_port()), "RUN_DIR": str(run), "SECONDS_TOTAL": "60",
+                          "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "hang"})
+    p = subprocess.Popen(["bash", str(TOOLS / "drive_loop.sh")], env=env, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, start_new_session=True)
+    time.sleep(3)
+    os.killpg(p.pid, signal.SIGINT)
+    out = p.communicate(timeout=30)[0].decode()
+    rows = (run / "driver-sessions.txt").read_text().splitlines()
+    assert len(rows) == 2 and rows[1].endswith("\tinterrupted"), out
+    assert len(rows[1].split("\t")[1]) == 36
+    rec = json.loads((run / "driver-rounds.jsonl").read_text().splitlines()[0])
+    assert rec["status"] == "interrupted" and rec["ok"] is True

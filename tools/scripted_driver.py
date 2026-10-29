@@ -32,6 +32,9 @@ from typing import Any, List, Optional, Tuple
 
 DIRECTIONS = ["up", "down", "left", "right"]
 NAME_RE = re.compile(r"^[A-Z]{1,7}$")
+# 新游戏开始时 WRAM 里已经写着这两个默认名字（实测：标题画面之后、起名之前 /state 就读到它们），
+# 所以"名字已设置"必须排除它们。
+DEFAULT_NAMES = ("NINTEN", "SONY")
 
 
 class Client:
@@ -100,7 +103,10 @@ def summarize(state: Optional[dict]) -> dict:
 
 def names_set(state: Optional[dict]) -> bool:
     s = summarize(state)
-    return bool(NAME_RE.match(str(s.get("name") or "")) and NAME_RE.match(str(s.get("rival") or "")))
+    name, rival = str(s.get("name") or ""), str(s.get("rival") or "")
+    if (name, rival) == DEFAULT_NAMES or name == DEFAULT_NAMES[0] or rival == DEFAULT_NAMES[1]:
+        return False
+    return bool(NAME_RE.match(name) and NAME_RE.match(rival))
 
 
 def position(state: Optional[dict]):
@@ -172,6 +178,20 @@ class Driver:
         self.say("opening: done" if ok else "opening: names not detected, continuing with random walk")
         return ok
 
+    # -- battle ---------------------------------------------------------------
+
+    def battle_actions(self) -> List[str]:
+        """One battle step. The main battle menu is FIGHT/PKMN (top) and ITEM/RUN (bottom):
+        UP+LEFT puts the cursor on FIGHT from anywhere, DOWN+RIGHT on RUN. In text boxes the
+        directions are ignored and A just advances; B backs out of sub-menus (e.g. an empty
+        ITEM list showing only CANCEL), where repeated A would otherwise loop forever."""
+        r = self.rng.random()
+        if r < 0.25:  # try to flee (fails harmlessly in trainer battles)
+            return ["press_b", "press_down", "press_right", "press_a", "wait_30"]
+        if r < 0.35:
+            return ["press_b", "wait_10", "press_a", "wait_30"]
+        return ["press_up", "press_left", "press_a", "wait_10", "press_a", "wait_30"]
+
     # -- free roaming -------------------------------------------------------
 
     def roam(self) -> None:
@@ -183,8 +203,7 @@ class Driver:
             n += 1
             s = summarize(self.last_state)
             if s.get("battle"):
-                actions = ["press_a", "wait_30"] if self.rng.random() < 0.85 else ["press_b", "press_down", "press_a"]
-                self.act(actions)
+                self.act(self.battle_actions())
                 continue
             if s.get("dialog"):
                 self.act(["press_a", "wait_20"])
