@@ -32,7 +32,7 @@
 - **用 ASCII 地图决定往哪走**：列 A–J（左→右）、行 1–9（上→下），你**永远在 E5**（画面跟着你滚动）。`.` 可走，`#` 不可走（树、栅栏、墙、水、招牌）。去 G6 = 右 2、下 1，前提是路径上每格都是 `.`。**用截图认出东西是什么**。两者互补。
 - 动作：`press_a`（确认/对话/交互）、`press_b`（取消/关菜单）、`press_start`（打开菜单）、`press_select`、`walk_up/down/left/right`（走一格）、`wait_60`（等约 1 秒）、`a_until_dialog_end`（连按 A 直到对话结束）、`hold_a_30`（按住 A 30 帧）。
 - 每轮优先级：1) 在对话中 → `a_until_dialog_end`；2) 在战斗中 → 选最好的招式（见下）；3) 队伍需要回血 → 去宝可梦中心；4) 否则推进主线、探索。
-- 卡住了（连续 3 次以上动作状态不变）：先 `press_b` 关掉菜单，再换方向，绕开 `#`。
+- 卡住了（连续 3 次以上动作状态不变）：先 `press_b` 关掉菜单，再换方向，绕开 `#`。如果在大地图上、不在战斗和对话中，连续几次走动坐标都不变，而且画面上看不到主角，就先 `press_start` 再 `press_b`，让游戏重画画面（这是游戏自身的一个已知竞态，见 reports/scout/oaks-lab-stall.md）。
 - 开场与过场（大木的介绍、起名）期间 `/state` 的 `dialog.active` 一直是 `false`，`a_until_dialog_end` 在这里没有效果；名字在起名之前就已是默认的 `NINTEN`/`SONY`，不代表已经起好名。推进这类文字时，一次 `/action` 发 6–10 个 `press_a`（例如 `["press_a","press_a","press_a","press_a","press_a","press_a"]`），用截图确认进度。
 - 开场：标题画面按 `press_start`；主菜单选 NEW GAME（`press_a`）；大木的介绍用成批的 `press_a` 推进。
 - 起名：先截图确认菜单（主角：NEW NAME / RED / ASH / JACK；劲敌：NEW NAME / BLUE / GARY / JOHN）已经出现、光标在 NEW NAME 上，再发 `["press_down", "press_a"]` 选第一个预设名。**不要盲按**：光标还在 NEW NAME 时按 A 会进入字母键盘。万一进了字母键盘，`press_start` 跳到 END，再 `press_a` 确认。
