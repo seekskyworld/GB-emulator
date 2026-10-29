@@ -1,6 +1,6 @@
 # gates
 
-**G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 94/94**
+**G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 94/94 REPLAY ok**
 
 options: `--baseline reports/baseline.json`
 
