@@ -1,0 +1,176 @@
+{
+  "summary": "G1 12/12 G2 1/1 G3 4/4 G4 0/1",
+  "fast": false,
+  "only": null,
+  "results": [
+    {
+      "group": "G1",
+      "name": "01-special",
+      "rom": "blargg/cpu_instrs/individual/01-special.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 143,
+      "serial": "01-special\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "02-interrupts",
+      "rom": "blargg/cpu_instrs/individual/02-interrupts.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 27,
+      "serial": "02-interrupts\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "03-op sp,hl",
+      "rom": "blargg/cpu_instrs/individual/03-op sp,hl.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 143,
+      "serial": "03-op sp,hl\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "04-op r,imm",
+      "rom": "blargg/cpu_instrs/individual/04-op r,imm.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 167,
+      "serial": "04-op r,imm\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "05-op rp",
+      "rom": "blargg/cpu_instrs/individual/05-op rp.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 227,
+      "serial": "05-op rp\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "06-ld r,r",
+      "rom": "blargg/cpu_instrs/individual/06-ld r,r.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 37,
+      "serial": "06-ld r,r\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "07-jr,jp,call,ret,rst",
+      "rom": "blargg/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 45,
+      "serial": "07-jr,jp,call,ret,rst\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "08-misc instrs",
+      "rom": "blargg/cpu_instrs/individual/08-misc instrs.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 35,
+      "serial": "08-misc instrs\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "09-op r,r",
+      "rom": "blargg/cpu_instrs/individual/09-op r,r.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 548,
+      "serial": "09-op r,r\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "10-bit ops",
+      "rom": "blargg/cpu_instrs/individual/10-bit ops.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 832,
+      "serial": "10-bit ops\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "11-op a,(hl)",
+      "rom": "blargg/cpu_instrs/individual/11-op a,(hl).gb",
+      "pass": true,
+      "reason": "",
+      "frames": 1053,
+      "serial": "11-op a,(hl)\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "cpu_instrs",
+      "rom": "blargg/cpu_instrs/cpu_instrs.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 3208,
+      "serial": "cpu_instrs\n\n01:ok  02:ok  03:ok  04:ok  05:ok  06:ok  07:ok  08:ok  09:ok  10:ok  11:ok  \n\nPassed all tests\n"
+    },
+    {
+      "group": "G2",
+      "name": "instr_timing",
+      "rom": "blargg/instr_timing/instr_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 41,
+      "serial": "instr_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "mem_timing",
+      "rom": "blargg/mem_timing/mem_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 95,
+      "serial": "mem_timing\n\n01:ok  02:ok  03:ok  \n\nPassed all tests\n"
+    },
+    {
+      "group": "G3",
+      "name": "01-read_timing",
+      "rom": "blargg/mem_timing/individual/01-read_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 30,
+      "serial": "01-read_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "02-write_timing",
+      "rom": "blargg/mem_timing/individual/02-write_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 29,
+      "serial": "02-write_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "03-modify_timing",
+      "rom": "blargg/mem_timing/individual/03-modify_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 32,
+      "serial": "03-modify_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G4",
+      "name": "dmg-acid2",
+      "rom": "acid2/dmg-acid2.gb",
+      "pass": false,
+      "reason": "no LD B,B within 119 frames; 10191 px differ, bbox (13,0)-(147,141)",
+      "frames": 119,
+      "serial": "",
+      "diff_pixels": 10191,
+      "diff_bbox": [
+        13,
+        0,
+        147,
+        141
+      ]
+    }
+  ]
+}
