@@ -54,7 +54,7 @@ impl Peripheral for Serial {
             return 0;
         }
         self.remaining -= 1;
-        if self.remaining % MCYCLES_PER_BIT == 0 {
+        if self.remaining.is_multiple_of(MCYCLES_PER_BIT) {
             self.sb = (self.sb << 1) | 1;
         }
         if self.remaining == 0 {

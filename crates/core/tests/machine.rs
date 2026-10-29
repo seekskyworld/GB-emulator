@@ -62,7 +62,7 @@ fn step_runs_nop_sequence() {
     let mut total = 4u64;
     for _ in 0..1000 {
         let t = m.step();
-        assert!(t >= 4 && t % 4 == 0, "step returned {t}");
+        assert!(t >= 4 && t.is_multiple_of(4), "step returned {t}");
         total += t as u64;
     }
     assert_eq!(m.cycles(), total);
