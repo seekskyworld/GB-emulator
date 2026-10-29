@@ -50,7 +50,7 @@ if mode == "hang":
 def post(path, body):
     req = urllib.request.Request(base + path, data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(req, timeout=30) as r:
         return r.status
 
 

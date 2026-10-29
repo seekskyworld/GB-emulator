@@ -21,13 +21,13 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import random
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
+import urllib.parse
 from typing import Any, List, Optional, Tuple
 
 DIRECTIONS = ["up", "down", "left", "right"]
@@ -51,21 +51,46 @@ class Client:
         self.t0 = time.time()
         self.requests = 0
         self.failures = 0
+        self.prefix = urllib.parse.urlsplit(self.url).path.rstrip("/")
+        self._c: Optional[http.client.HTTPConnection] = None
+
+    def _conn(self) -> http.client.HTTPConnection:
+        if self._c is None:
+            u = urllib.parse.urlsplit(self.url)
+            self._c = http.client.HTTPConnection(u.hostname or "localhost", u.port or 80, timeout=self.timeout)
+        return self._c
 
     def _req(self, method: str, path: str, body: Optional[dict] = None) -> Tuple[Optional[int], Any]:
+        """One request over a persistent keep-alive connection.
+
+        A new TCP connection per request (urllib) leaves a TIME_WAIT socket each time; at several
+        hundred requests per second that exhausts the ephemeral ports ("[Errno 49] Can't assign
+        requested address") and starves the monitor. http.client also ignores http_proxy."""
         data = json.dumps(body).encode() if body is not None else None
-        req = urllib.request.Request(self.url + path, data=data, method=method,
-                                     headers={"Content-Type": "application/json"} if data else {})
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                return r.status, json.loads(r.read().decode("utf-8") or "null")
-        except urllib.error.HTTPError as e:
+        headers = {"Content-Type": "application/json"} if data else {}
+        for attempt in (0, 1):
+            reused = self._c is not None
             try:
-                return e.code, json.loads(e.read().decode("utf-8") or "null")
-            except Exception:  # noqa: BLE001
-                return e.code, None
-        except Exception as e:  # noqa: BLE001
-            return None, {"error": f"{type(e).__name__}: {e}"}
+                c = self._conn()
+                c.request(method, self.prefix + path, body=data, headers=headers)
+                r = c.getresponse()
+                raw = r.read()
+                try:
+                    js = json.loads(raw.decode("utf-8") or "null")
+                except ValueError:
+                    js = None
+                return r.status, js
+            except (http.client.HTTPException, OSError) as e:
+                if self._c is not None:
+                    self._c.close()
+                self._c = None
+                # Retry once only when a reused keep-alive connection had been closed by the server
+                # (idle timeout); otherwise the request may already have run and must not be repeated.
+                stale = reused and isinstance(e, (http.client.RemoteDisconnected, BrokenPipeError,
+                                                  ConnectionResetError))
+                if attempt == 1 or not stale:
+                    return None, {"error": f"{type(e).__name__}: {e}"}
+        return None, None
 
     def action(self, actions: List[str], note: Optional[str] = None) -> Tuple[Optional[int], Optional[dict]]:
         t = time.time()
@@ -134,7 +159,11 @@ class Driver:
         self.conn_fail_since: Optional[float] = None
         self.recoveries = 0
 
+    max_requests: Optional[int] = None
+
     def time_left(self) -> bool:
+        if self.max_requests is not None and self.c.requests >= self.max_requests:
+            return False
         return time.time() < self.deadline
 
     def act(self, actions: List[str], note: Optional[str] = None) -> Optional[dict]:
@@ -263,6 +292,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--intro", choices=["auto", "yes", "no"], default="auto",
                     help="run the opening sequence: auto = only if the names are not set yet")
     ap.add_argument("--log", default=None, help="append one JSON line per /action to this file")
+    ap.add_argument("--max-requests", type=int, default=None,
+                    help="also stop after this many /action requests (for deterministic tests)")
     args = ap.parse_args(argv)
 
     url = args.url or f"http://localhost:{args.port}"
@@ -270,6 +301,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     log = open(args.log, "a", encoding="utf-8") if args.log else None
     client = Client(url, log=log)
     drv = Driver(client, time.time() + args.seconds, random.Random(seed))
+    drv.max_requests = args.max_requests
     drv.say(f"url={url} seconds={args.seconds} seed={seed} intro={args.intro}")
     try:
         intro = args.intro

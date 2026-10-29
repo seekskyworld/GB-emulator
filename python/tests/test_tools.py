@@ -237,7 +237,7 @@ def test_playtest_setup_error_without_lib(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def run_playtest(tmp_path, driver, minutes, extra_env=None, run_id="run"):
+def run_playtest(tmp_path, driver, minutes, extra_env=None, run_id="run", extra_args=(), interval="2"):
     rom = tmp_path / "fake.gb"
     rom.write_bytes(b"\0" * 0x8000)
     env = env_with_paths(extra_env or {})
@@ -245,8 +245,8 @@ def run_playtest(tmp_path, driver, minutes, extra_env=None, run_id="run"):
     if not Path(env["GBEMU_LIB"]).is_file():
         env["GBEMU_LIB"] = str(rom)  # only copied/pinned; the fake backend never loads it
     cmd = [sys.executable, str(TOOLS / "playtest.py"), "--minutes", str(minutes), "--driver", driver,
-           "--port", str(free_port()), "--rom", str(rom), "--launcher", "fake_server", "--interval", "2",
-           "--out-root", str(tmp_path / "out"), "--run-id", run_id]
+           "--port", str(free_port()), "--rom", str(rom), "--launcher", "fake_server", "--interval", interval,
+           "--out-root", str(tmp_path / "out"), "--run-id", run_id, *extra_args]
     r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=300)
     return r, tmp_path / "out" / run_id
 
@@ -273,7 +273,7 @@ def test_playtest_detects_frozen_frames(tmp_path):
 
 
 def test_playtest_agent_driver_with_fake_claude(tmp_path):
-    r, run = run_playtest(tmp_path, "agent", 0.3, {
+    r, run = run_playtest(tmp_path, "agent", 0.5, {
         "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "ok", "FAKE_NAMES": "1",
         "FAKE_CLAUDE_LOG": str(tmp_path / "claude.log")})
     assert r.returncode == 0, r.stdout + (run / "driver.log").read_text()
@@ -299,7 +299,7 @@ def test_drive_loop_fallback_after_three_failures(tmp_path):
     run = tmp_path / "run"
     with Server(args, env_with_paths({"FAKE_NAMES": "1"}), tmp_path / "server.log") as srv:
         wait_health(url, srv.proc)
-        env = env_with_paths({"PORT": str(port), "RUN_DIR": str(run), "SECONDS_TOTAL": "6",
+        env = env_with_paths({"PORT": str(port), "RUN_DIR": str(run), "SECONDS_TOTAL": "15",
                               "FALLBACK_SECONDS": "2", "PYTHON": sys.executable,
                               "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "fail"})
         r = subprocess.run(["bash", str(TOOLS / "drive_loop.sh")], env=env, capture_output=True, text=True,
@@ -328,15 +328,20 @@ def test_drive_loop_records_interrupted_round(tmp_path):
     import time
 
     run = tmp_path / "run"
+    claude_log = tmp_path / "claude.log"
     env = env_with_paths({"PORT": str(free_port()), "RUN_DIR": str(run), "SECONDS_TOTAL": "60",
-                          "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "hang"})
+                          "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "hang",
+                          "FAKE_CLAUDE_LOG": str(claude_log)})
     p = subprocess.Popen(["bash", str(TOOLS / "drive_loop.sh")], env=env, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, start_new_session=True)
     sessions = run / "driver-sessions.txt"
     deadline = time.time() + 30
-    while time.time() < deadline and not (sessions.is_file() and "\tstarted" in sessions.read_text()):
-        time.sleep(0.2)  # wait until the round (and its fake claude) is actually running
-    time.sleep(1)
+    # wait until round 1 is really running: its session row is written and the fake claude has started
+    while time.time() < deadline and not (sessions.is_file() and "\tstarted" in sessions.read_text()
+                                          and claude_log.is_file() and claude_log.read_text().strip()):
+        time.sleep(0.1)
+    assert claude_log.is_file(), "round 1 never started"
+    time.sleep(0.5)
     os.killpg(p.pid, signal.SIGINT)
     out = p.communicate(timeout=30)[0].decode()
     rows = (run / "driver-sessions.txt").read_text().splitlines()
@@ -356,8 +361,9 @@ def test_scripted_driver_recovers_from_stall(tmp_path):
     log = tmp_path / "actions.jsonl"
     with Server(args, env_with_paths({"FAKE_NAMES": "1", "FAKE_STALL_AFTER": "300"}), tmp_path / "s.log") as srv:
         wait_health(url, srv.proc)
-        r = subprocess.run([sys.executable, str(TOOLS / "scripted_driver.py"), "--url", url, "--seconds", "4",
-                            "--seed", "3", "--log", str(log)], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([sys.executable, str(TOOLS / "scripted_driver.py"), "--url", url, "--seconds", "120",
+                            "--max-requests", "600", "--seed", "3", "--log", str(log)],
+                           capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, r.stdout + r.stderr
     recs = [json.loads(line) for line in log.read_text().splitlines()]
     idx = [i for i, x in enumerate(recs) if x.get("note") == "recover_tilemap"]
@@ -369,3 +375,48 @@ def test_scripted_driver_recovers_from_stall(tmp_path):
     assert len(before) == 1
     after = {(x["x"], x["y"]) for x in recs[i + 1:i + 30]}
     assert len(after) > 1
+
+
+def test_stall_windows():
+    # 13 quiet samples 10 s apart = 120 s: not more than the 120 s limit
+    ss = [sample(0, x=1, actions=0)] + [sample(10 + i * 10, x=2, actions=10 + i) for i in range(13)]
+    assert playtest.stall_windows(ss) == []
+    ss.append(sample(140, x=2, actions=99))  # 130 s
+    st = playtest.stall_windows(ss)
+    assert len(st) == 1 and st[0]["start"] == 10 and st[0]["end"] == 140 and st[0]["actions"] == 89
+    assert (st[0]["x"], st[0]["y"]) == (2, 6)
+    # no /action during the window: the driver is just thinking, not a stall
+    idle = [sample(i * 10, x=2, actions=5) for i in range(20)]
+    assert playtest.stall_windows(idle) == []
+    # a battle or a dialog in the middle splits the window
+    split = [sample(i * 10, x=2, actions=i, battle=(i == 7)) for i in range(15)]
+    assert playtest.stall_windows(split) == []
+    split = [sample(i * 10, x=2, actions=i, dialog=(i == 7)) for i in range(15)]
+    assert playtest.stall_windows(split) == []
+    assert len(playtest.stall_windows([sample(i * 10, x=2, actions=i) for i in range(15)])) == 1
+
+
+def test_evaluate_stall_is_a_warning_unless_fail_on_stall():
+    ss = [sample(0, x=1, actions=0)] + [sample(10 + i * 10, x=2, actions=1 + i) for i in range(20)]
+    r = playtest.evaluate(ss, STATS_OK, "script")
+    assert r["verdict"] == "PASS"
+    assert r["warnings"][0].startswith("STALL suspected: map 38") and "t=10..200s" in r["warnings"][0]
+    md = playtest.render_summary({"run_id": "x"}, r, ss, [])
+    assert md.splitlines()[4].startswith("> **STALL WARNING: 1 suspected stall(s), 190s in total**")
+    r = playtest.evaluate(ss, STATS_OK, "script", fail_on_stall=True)
+    assert r["verdict"] == "FAIL" and r["exit_code"] == 1 and not hard(r, "suspected stall")["ok"]
+    r = playtest.evaluate(ss, STATS_OK, "script", stall_limit=300, fail_on_stall=True)
+    assert r["verdict"] == "PASS" and r["stalls"] == []
+
+
+def test_playtest_stall_warning_end_to_end(tmp_path):
+    env = {"FAKE_NAMES": "1", "FAKE_STUCK_AFTER": "60"}
+    args = ("--stall-seconds", "4")
+    r, run = run_playtest(tmp_path, "script", 0.2, env, run_id="warn", extra_args=args, interval="1")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "WARN STALL suspected" in r.stdout
+    assert "**STALL WARNING" in (run / "summary.md").read_text()
+    r, run = run_playtest(tmp_path, "script", 0.2, env, run_id="fail", extra_args=args + ("--fail-on-stall",),
+                          interval="1")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "ERROR no suspected stall over 4s (--fail-on-stall)" in r.stdout

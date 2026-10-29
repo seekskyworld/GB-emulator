@@ -13,15 +13,34 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# 本机设置了 http_proxy（127.0.0.1:7897）而没有 no_proxy：urllib/curl 默认会把 localhost 请求也交给代理，
+# 端口未监听时得到的是代理的 502（数秒后）而不是"连接被拒绝"。所有 localhost 请求一律绕过代理。
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 TESTS = Path(__file__).resolve().parent
 PYDIR = TESTS.parent
 REPO = PYDIR.parent
 
 
 def free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+    """A currently free TCP port *outside* the ephemeral range (macOS: 49152-65535).
+
+    Asking the kernel for port 0 hands out an ephemeral port, which outgoing connections (this
+    machine runs a local HTTP proxy) can grab again before the server binds it; that showed up as
+    uvicorn exiting with "[Errno 48] address already in use". Ports are checked on 0.0.0.0, which
+    is what uvicorn binds."""
+    import random
+
+    rng = random.Random()
+    for _ in range(200):
+        port = rng.randrange(20000, 45000)
+        with socket.socket() as s:
+            try:
+                s.bind(("0.0.0.0", port))
+            except OSError:
+                continue
+            return port
+    raise RuntimeError("no free port found")
 
 
 def env_with_paths(extra: dict | None = None) -> dict:
@@ -32,7 +51,7 @@ def env_with_paths(extra: dict | None = None) -> dict:
 
 
 def get(url: str, timeout: float = 10.0):
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    with _OPENER.open(url, timeout=timeout) as r:
         return r.status, r.headers.get("content-type", ""), r.read()
 
 
@@ -40,7 +59,7 @@ def post(url: str, body: dict, timeout: float = 30.0):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with _OPENER.open(req, timeout=timeout) as r:
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read() or b"null")

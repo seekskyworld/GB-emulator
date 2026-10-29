@@ -41,6 +41,10 @@ REFS="${GBEMU_REFS:-$REPO/refs}"
 SKILL="$REFS/pokemon-agent/skill/SKILL.md"
 PROMPT_TEMPLATE="$HERE/driver_prompt.md"
 
+# 本机有 http_proxy 而没有 no_proxy：不设置的话，本脚本和驾驶会话里的 curl 都会把 localhost 请求交给代理。
+export NO_PROXY="${NO_PROXY:+$NO_PROXY,}localhost,127.0.0.1,::1"
+export no_proxy="$NO_PROXY"
+
 mkdir -p "$RUN_DIR/driver-rounds" "$RUN_DIR/driver-shots"
 SESSIONS="$RUN_DIR/driver-sessions.txt"
 ROUNDS="$RUN_DIR/driver-rounds.jsonl"
@@ -78,7 +82,7 @@ trap cleanup INT TERM
 # 服务端 /action 计数（来自 gbemu.launch 的 /gbemu/stats）；取不到时输出 -1。
 actions_total() {
   local js
-  js="$(curl -s -m 5 "$URL/gbemu/stats" 2>/dev/null)" || { echo -1; return; }
+  js="$(curl -s -m 5 --noproxy "*" "$URL/gbemu/stats" 2>/dev/null)" || { echo -1; return; }
   printf '%s' "$js" | sed -n 's/.*"actions_total":[ ]*\([0-9][0-9]*\).*/\1/p' | head -n1 | grep . || echo -1
 }
 
