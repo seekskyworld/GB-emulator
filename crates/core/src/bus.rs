@@ -142,18 +142,31 @@ impl Bus {
         self.serial.take_output()
     }
 
-    /// 无副作用读，与 `read` 共用映射但不推进时钟。
+    /// 无副作用读，与 `read` 共用映射但不推进时钟。VRAM/OAM 返回真实内容，不受 PPU 的访问封锁影响（D031）。
     pub fn peek(&self, addr: u16) -> u8 {
+        self.read_mem(addr, false)
+    }
+
+    /// 读访问的映射（不推进时钟）。`cpu` 为真时是 CPU 的读：VRAM/OAM 受 PPU 的访问封锁（D031）。
+    fn read_mem(&self, addr: u16, cpu: bool) -> u8 {
         match addr {
             0x0000..=0x7FFF => self.cart.read_rom(addr),
-            0x8000..=0x9FFF => self.ppu.read_vram(addr),
+            0x8000..=0x9FFF => {
+                if cpu {
+                    self.ppu.read_vram(addr)
+                } else {
+                    self.ppu.peek_vram(addr)
+                }
+            }
             0xA000..=0xBFFF => self.cart.read_ram(addr),
             0xC000..=0xFDFF => self.wram[(addr & 0x1FFF) as usize],
             0xFE00..=0xFE9F => {
                 if self.dma.oam_blocked() {
                     0xFF
-                } else {
+                } else if cpu {
                     self.ppu.read_oam(addr)
+                } else {
+                    self.ppu.peek_oam(addr)
                 }
             }
             0xFEA0..=0xFEFF => {
@@ -257,7 +270,7 @@ impl Bus {
 impl CpuBus for Bus {
     fn read(&mut self, addr: u16) -> u8 {
         self.tick();
-        self.peek(addr)
+        self.read_mem(addr, true)
     }
 
     fn write(&mut self, addr: u16, v: u8) {

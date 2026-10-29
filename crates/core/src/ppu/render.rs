@@ -50,6 +50,54 @@ impl Ppu {
         self.oam[index as usize * 4 + 1]
     }
 
+    /// 本行窗口开始的屏幕 x：LCDC.0=1、LCDC.5=1、本帧 Y 条件已满足、WX 在 0..=166 时为 `WX-7`
+    /// （WX<7 时为 0），窗口从那里覆盖到行尾。
+    pub(super) fn window_start(&self) -> Option<usize> {
+        if self.lcdc & 0x21 == 0x21 && self.win_y_hit && self.wx <= 166 {
+            Some((self.wx as usize).saturating_sub(7))
+        } else {
+            None
+        }
+    }
+
+    /// mode 3 比最短的 172 dot 多出的长度（`Rendering.md` "Mode 3 length"）：
+    /// SCX%8；本行出现窗口时 6；每个被绘制的精灵（X<168，含 X=0）6 dot，再加上它最左像素所在的
+    /// BG/窗口 tile 若未被前面的精灵计过，则加"该 tile 中在它右边的像素数 − 2"（不小于 0；X=0 固定为 5）。
+    /// 精灵按从左到右的顺序考虑（即 OAM scan 排好的绘制优先级顺序）。
+    pub(super) fn mode3_penalty(&self) -> u16 {
+        let fine = (self.scx & 7) as i32;
+        let win = self.window_start();
+        let mut extra = fine + if win.is_some() { 6 } else { 0 };
+        if self.lcdc & 0x02 != 0 {
+            // 已计过的 tile：bit 0..=21 为 BG 列，bit 32.. 为窗口列。
+            let mut seen: u64 = 0;
+            for &index in &self.objs[..self.obj_count as usize] {
+                let x = self.obj_x(index) as i32;
+                if x >= 168 {
+                    continue;
+                }
+                let px = x - 8; // 最左像素的屏幕 x（可为负）
+                let (key, right) = match win {
+                    Some(ws) if px >= ws as i32 => {
+                        let o = px - ws as i32;
+                        (32 + o / 8, 7 - o % 8)
+                    }
+                    _ => {
+                        let m = px + 8 + fine; // BG tile 边界在屏幕 x ≡ -SCX (mod 8)
+                        (m / 8, 7 - m % 8)
+                    }
+                };
+                if seen & (1u64 << key) == 0 {
+                    seen |= 1u64 << key;
+                    extra += if x == 0 { 5 } else { (right - 2).max(0) };
+                }
+                extra += 6;
+            }
+        }
+        // mode 3 最长 289 dot。
+        extra.min(289 - 172) as u16
+    }
+
     /// 把当前行的像素 `x0..x1` 画到后缓冲。
     pub(super) fn render_span(&mut self, x0: usize, x1: usize) {
         let mut bg = [0u8; SCREEN_W];
@@ -120,12 +168,7 @@ impl Ppu {
         if lcdc & 0x01 == 0 {
             return;
         }
-        // 窗口：LCDC.5=1、本帧 Y 条件已满足、WX 在 0..=166 时，从 x = WX-7 开始覆盖到行尾。
-        let win_start = if lcdc & 0x20 != 0 && self.win_y_hit && self.wx <= 166 {
-            (self.wx as usize).saturating_sub(7)
-        } else {
-            SCREEN_W
-        };
+        let win_start = self.window_start().unwrap_or(SCREEN_W);
         let bg_end = x1.min(win_start.max(x0));
         if x0 < bg_end {
             let map = if lcdc & 0x08 != 0 { 0x1C00 } else { 0x1800 };
