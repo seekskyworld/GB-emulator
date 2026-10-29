@@ -17,3 +17,8 @@
 - **D013 PPU/DMA 空壳不 panic**：T02 的 `Ppu::tick_mcycle` 返回 0、寄存器为可读写存储、`Dma::tick_mcycle` 返回 `None`，避免 core/sys 在 ppu 合入前跑 ROM 时 panic（Blargg 控制台在 LY 不变时会超时后继续，见 `refs/blargg/cpu_instrs/source/common/console.s`）。
 - **D014 路径环境变量**：测试 ROM 与资料从 `$GBEMU_REFS`（默认 `<repo>/refs`）读取；宝可梦 ROM 从 `$GBEMU_POKERED`（默认 `<repo>/roms/pokered.gb`）读取。lane worktree 中没有 `refs/`、`roms/`，必须设置这两个变量为主仓库的绝对路径。
 - **D015 SST 格式（实测，修正 PLAN §4.2）**：`cycles` 中内部周期编码为 `[地址, 数据, "---"]`（不是 `null`）；读为 `"r-m"`、写为 `"-wm"`。`initial` 含 `ie` 字段（0/1，不是 IE 寄存器），`final` 对 EI 含 `ei`。PC 指向操作码本身，取指是第 1 个 M-cycle。
+- **D016 gates 帧循环**（platform T05a）：gates 不直接调用 `run_frame`，而是按与它相同的 70224 T 余量规则逐条 `step()`，以便记录末尾 32 条 PC；`step` 若返回 0 则报错而不是挂起。
+- **D017 gates 提前结束**：检测到 "Passed"/"Failed" 后继续跑到该行换行为止（最多再跑 60 帧），避免把 "Passed all tests" 截成 "Passed al"，也能捕获紧随其后的 "Failed"。acid2：每帧边界检查 LD B,B，须在前 119 帧内出现，之后再跑 1 帧（共 120 帧）。
+- **D018 卡带细则**（platform T50）：新增 `CartError::UnsupportedRamSize`；ROM 不足 16 KiB 整数倍时补 0xFF（只有不足 0x150 字节才报错）；RAM 大小代码 0x01 按 2 KiB；只有类型含 RAM 才有 RAM；MBC3 RTC 寄存器只在 TIMER 类型（0x0F/0x10）存在。
+- **D019 基线只前移**：`--update-baseline` 只把新通过的项并入基线；存在任何 REGRESSION 时拒绝更新。合并时的 gates 输出写到 `/tmp`（`--out`），仓库内的 `reports/gates.*` 只在里程碑重写并提交。
+- **D020 bench（PPU 空壳时）**：pokered 22478 fps、cpu_instrs 17122 fps、acid2 21431 fps（release）；PPU 合入后在 T61 重测。
