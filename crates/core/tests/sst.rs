@@ -22,7 +22,7 @@ use std::sync::Mutex;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Exception {
     /// 76 HALT：SST 记录 3 个 M-cycle（取指 + 2 个内部周期）；本实现 HALT 指令本身 1 M-cycle
-    /// （Opcodes.json 为 4 T），停机期间每次 `step` 各 1 个 idle。比较寄存器、RAM 与首个取指周期，不比较周期数。
+    /// （Opcodes.json 为 4 T），停机期间每次 `step` 占 1 个 M-cycle（在 PC 处取指，PC 不前进）。比较寄存器、RAM 与首个取指周期，不比较周期数。
     Halt,
     /// 10 STOP：SST 记录 PC+1、3 个 M-cycle；本实现按 Pan Docs / gbz80(7) / Opcodes.json 为 2 字节、
     /// 1 M-cycle（跳过第二个字节）。比较除 PC 与周期数之外的全部字段及首个取指周期。
