@@ -279,8 +279,9 @@ def test_playtest_agent_driver_with_fake_claude(tmp_path):
     assert r.returncode == 0, r.stdout + (run / "driver.log").read_text()
     rows = (run / "driver-sessions.txt").read_text().splitlines()
     assert rows[0].startswith("round\tsession_id")
-    assert len(rows) - 1 >= 3, rows
-    sid = rows[1].split("\t")[1]
+    done = [r_ for r_ in rows[1:] if r_.endswith("\tok")]
+    assert len(done) >= 3, rows
+    sid = done[0].split("\t")[1]
     assert len(sid) == 36 and sid.count("-") == 4
     rounds = [json.loads(line) for line in (run / "driver-rounds.jsonl").read_text().splitlines()]
     assert all(r_["kind"] == "agent" and r_["ok"] and r_["actions"] == 2 for r_ in rounds[:3]), rounds
@@ -331,12 +332,16 @@ def test_drive_loop_records_interrupted_round(tmp_path):
                           "CLAUDE_BIN": str(TESTS / "fake_claude.py"), "FAKE_CLAUDE_MODE": "hang"})
     p = subprocess.Popen(["bash", str(TOOLS / "drive_loop.sh")], env=env, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, start_new_session=True)
-    time.sleep(3)
+    sessions = run / "driver-sessions.txt"
+    deadline = time.time() + 30
+    while time.time() < deadline and not (sessions.is_file() and "\tstarted" in sessions.read_text()):
+        time.sleep(0.2)  # wait until the round (and its fake claude) is actually running
+    time.sleep(1)
     os.killpg(p.pid, signal.SIGINT)
     out = p.communicate(timeout=30)[0].decode()
     rows = (run / "driver-sessions.txt").read_text().splitlines()
-    assert len(rows) == 2 and rows[1].endswith("\tinterrupted"), out
-    assert len(rows[1].split("\t")[1]) == 36
+    assert rows[1].endswith("\tstarted") and len(rows[1].split("\t")[1]) == 36, out
+    assert rows[2].endswith("\tinterrupted") and rows[2].split("\t")[1] == rows[1].split("\t")[1], out
     rec = json.loads((run / "driver-rounds.jsonl").read_text().splitlines()[0])
     assert rec["status"] == "interrupted" and rec["ok"] is True
 

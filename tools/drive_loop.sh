@@ -7,7 +7,8 @@
 #
 # 环境变量（playtest.py 会设置）：
 #   PORT           服务器端口（默认 8765）；URL 默认 http://localhost:$PORT
-#   RUN_DIR        报告目录（必填）：写 driver-sessions.txt、driver-rounds.jsonl、driver-rounds/
+#   RUN_DIR        报告目录（必填）：写 driver-sessions.txt（每轮开始时一行 started，结束时一行结果）、
+#                  driver-rounds.jsonl、driver-rounds/
 #   SECONDS_TOTAL  总驾驶秒数（默认 MINUTES*60，MINUTES 默认 30）
 #   MODEL          默认 global.anthropic.claude-sonnet-5-5；EFFORT 默认 high
 #   ROUND_TIMEOUT  单轮上限秒数（默认 180）；超过即杀掉并记为失败
@@ -145,6 +146,8 @@ while [ "$(now)" -lt "$END" ]; do
 
   # prompt 走 stdin：--allowedTools 是可变参数，放在它后面的位置参数会被当成工具名。
   CUR_ROUND="$ROUND"; CUR_SID="$sid"; CUR_START="$start"; CUR_BEFORE="$before"
+  # 先记下会话 ID：即使本脚本随后被直接杀掉（trap 来不及跑），导出会话（R4）也不会漏掉这一轮。
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$ROUND" "$sid" "-" 0 0 started >> "$SESSIONS"
   "$CLAUDE_BIN" -p --model "$MODEL" --effort "$EFFORT" --output-format json \
       --session-id "$sid" --permission-mode dontAsk --tools "Bash,Read" \
       --allowedTools "Bash(curl *localhost*)" "Read" < "$prompt" > "$out" 2> "$err" &
@@ -156,7 +159,7 @@ while [ "$(now)" -lt "$END" ]; do
       kill -TERM "$CHILD" 2>/dev/null; sleep 3; kill -KILL "$CHILD" 2>/dev/null
       break
     fi
-    sleep 1
+    sleep 1 & wait $!   # 用 wait 等待，信号到达时 trap 立即执行
   done
   wait "$CHILD"; rc=$?
   CHILD=""
