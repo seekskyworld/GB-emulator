@@ -1,0 +1,24 @@
+[drive_loop] url=http://localhost:8790 seconds=1800 model=global.anthropic.claude-sonnet-5-5 effort=high timeout=180s
+[drive_loop] round-001 session=7fabaa9c-815c-436b-b1ac-60632b2a3b13 rc=0 74s actions=6 status=ok
+[drive_loop] round-002 session=9639f870-980d-4c79-a916-743f6120572a rc=0 69s actions=8 status=ok
+[drive_loop] round-003 session=0ab5fd62-9792-457f-b4d1-b97ad76a42a4 rc=0 87s actions=8 status=ok
+[drive_loop] round-004 session=948a40c6-eb99-441a-881b-3f31064341b8 rc=0 102s actions=10 status=ok
+[drive_loop] round-005 session=04877cea-135b-4930-a59a-05d90494d433 rc=0 94s actions=8 status=ok
+[drive_loop] round-006 session=ae5e3992-aacb-4650-862c-962d9d5b6b20 rc=0 93s actions=7 status=ok
+[drive_loop] round-007 session=22c7ab58-0772-4ae8-86f6-af9099033062 rc=0 77s actions=7 status=ok
+[drive_loop] round-008 session=58df54bb-af80-4f4e-8342-44f5e104a753 rc=0 94s actions=9 status=ok
+[drive_loop] round-009 session=951879e7-1488-4a13-bdde-6f00a7fedf99 rc=0 88s actions=8 status=ok
+[drive_loop] round-010 session=826767a8-2d36-4c28-9972-836212237a50 rc=0 104s actions=9 status=ok
+[drive_loop] round-011 session=25f16960-236b-4fc7-a3e7-e7d1acf35d7d rc=0 79s actions=8 status=ok
+[drive_loop] round-012 session=4428177e-a749-42f1-b809-549086d6dd1b rc=0 75s actions=7 status=ok
+[drive_loop] round-013 session=d0375e7c-95fd-40e1-8539-3b1dba427a1e rc=0 67s actions=7 status=ok
+[drive_loop] round-014 session=f914b7dc-115c-45d1-87ee-42ed9b9de73b rc=0 86s actions=8 status=ok
+[drive_loop] round-015 session=409c112e-107d-45e5-a53c-7ea95c943e04 rc=0 61s actions=7 status=ok
+[drive_loop] round-016 session=9524ea10-db2f-4697-afb1-d4fdc5017740 rc=0 58s actions=8 status=ok
+[drive_loop] round-017 session=f3b82957-317a-4bb5-88d6-c7053669a96c rc=0 66s actions=6 status=ok
+[drive_loop] round-018 session=85861e9f-633e-45d2-8db7-8f725f1e4339 rc=0 90s actions=8 status=ok
+[drive_loop] round-019 session=219cb5e1-439b-42be-a657-c6f569b602e3 rc=0 59s actions=7 status=ok
+[drive_loop] round-020 session=1355574b-a3cd-41c7-b496-7be16cfe9c2b rc=0 64s actions=7 status=ok
+[drive_loop] round-021 session=9570ec19-e021-4889-abae-78ff5b4bd4f7 rc=0 77s actions=8 status=ok
+[drive_loop] round-022 session=2b683c16-4621-41fc-8c7a-38b17f84ce53 rc=0 104s actions=8 status=ok
+[drive_loop] stopped
