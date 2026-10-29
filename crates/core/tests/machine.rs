@@ -3,7 +3,7 @@
 use gb_core::machine::{FINGERPRINT_LEN, STATE_MAGIC, STATE_VERSION};
 use gb_core::{Machine, StateError, FRAME_T};
 
-/// 合成 32 KiB ROM only：0x100 `NOP; JP $0150`，0x150 起 16 个 NOP 后 `JP $0150`（真 CPU 合入后也只跑 NOP 循环）。
+/// 合成 32 KiB ROM only：0x100 `NOP; JP $0150`，0x150 起 16 个 NOP 后 `JP $0150`。
 fn rom_with(title: &[u8], header_checksum: u8) -> Vec<u8> {
     let mut rom = vec![0u8; 0x8000];
     rom[0x100..0x104].copy_from_slice(&[0x00, 0xC3, 0x50, 0x01]);
@@ -54,15 +54,19 @@ fn power_up_io_through_machine_peek() {
     assert_eq!(m.cycles(), 0, "peek must not advance the clock");
 }
 
+/// 这个 ROM 上每一步的 T 数：0x0100 `NOP`（4）、`JP $0150`（16），之后循环 16 个 `NOP` + `JP $0150`（共 80 T，
+/// 不整除 70224，所以每帧末尾都有余量）。
+fn expected_step_t() -> impl Iterator<Item = u32> {
+    [4u32, 16].into_iter().chain(std::iter::repeat([4u32; 16].into_iter().chain([16]).collect::<Vec<_>>()).flatten())
+}
+
 #[test]
 fn step_runs_nop_sequence() {
     let mut m = machine();
-    // 0x0100 是 NOP：无论 CPU 是空壳（1 次 idle）还是真实实现，第一步都是 4 T。
-    assert_eq!(m.step(), 4);
-    let mut total = 4u64;
-    for _ in 0..1000 {
+    let mut total = 0u64;
+    for (i, want) in expected_step_t().take(1000).enumerate() {
         let t = m.step();
-        assert!(t >= 4 && t.is_multiple_of(4), "step returned {t}");
+        assert_eq!(t, want, "step {i}");
         total += t as u64;
     }
     assert_eq!(m.cycles(), total);
@@ -72,18 +76,30 @@ fn step_runs_nop_sequence() {
 fn run_frame_advances_exactly_one_frame() {
     let mut m = machine();
     m.run_frame();
-    // NOP/JP 循环里任何一步不超过 16 T；余量不得丢失也不得重复计。
-    let over = m.cycles() as i64 - FRAME_T as i64;
-    assert!((0..16).contains(&over), "overshoot {over}");
+    // 跑到第一个不早于 70224 T 的指令边界为止。
+    let mut acc = 0u64;
+    let boundary = expected_step_t().map(|t| { acc += t as u64; acc }).find(|&c| c >= FRAME_T as u64).unwrap();
+    assert_eq!(m.cycles(), boundary);
+    assert!(m.cycles() - (FRAME_T as u64) < 16);
 }
 
 #[test]
 fn run_frame_remainder_carries_over() {
+    // n 帧之后的总 T 数必须是第一个不早于 n×70224 的指令边界：上一帧多跑的 T 从下一帧扣除，既不丢也不重复。
     let mut m = machine();
+    let mut acc = 0u64;
+    let mut boundaries = expected_step_t().map(move |t| {
+        acc += t as u64;
+        acc
+    });
+    let mut last = 0u64;
     for n in 1..=50u64 {
         m.run_frame();
-        let over = m.cycles() as i64 - (n * FRAME_T as u64) as i64;
-        assert!((0..16).contains(&over), "frame {n}: overshoot {over} (remainder must carry over, not accumulate)");
+        let target = n * FRAME_T as u64;
+        while last < target {
+            last = boundaries.next().unwrap();
+        }
+        assert_eq!(m.cycles(), last, "frame {n}");
     }
 }
 
@@ -146,10 +162,10 @@ fn load_state_truncated_header() {
     assert_eq!(m.load_state(&h[..h.len() - 1]), Err(StateError::Truncated));
 }
 
-// ---- 以下需要 Cpu/Ppu/Dma/Cart 的 Snapshot（core、ppu、platform 通道）；合并后由 T52 兜底 ----
+// ---- 以下需要 Ppu/Dma 的 Snapshot（ppu 通道）；合并后去掉 ignore，T52 另有整机往返测试 ----
 
 #[test]
-#[ignore = "needs Snapshot for Cpu/Ppu/Dma/Cart from other lanes"]
+#[ignore = "needs Snapshot for Ppu/Dma (ppu lane T40-T42)"]
 fn save_state_header_and_roundtrip() {
     let mut m = machine();
     for _ in 0..3 {
@@ -168,7 +184,7 @@ fn save_state_header_and_roundtrip() {
 }
 
 #[test]
-#[ignore = "needs Snapshot for Cpu/Ppu/Dma/Cart from other lanes"]
+#[ignore = "needs Snapshot for Ppu/Dma (ppu lane T40-T42)"]
 fn load_state_failure_keeps_state() {
     let mut m = machine();
     m.run_frame();
