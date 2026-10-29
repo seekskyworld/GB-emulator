@@ -6,7 +6,7 @@ use std::path::Path;
 
 use gb_core::{FRAME_PIXELS, SCREEN_H, SCREEN_W};
 
-use crate::gates::{results_json, Kind, Options, RomResult};
+use crate::gates::{mooneye_raw, results_json, Kind, Options, RomResult};
 use crate::judge::{DiffStats, RunEnd};
 use crate::png;
 
@@ -74,6 +74,21 @@ pub fn log_text(r: &RomResult, diff: Option<(&DiffStats, &str)>) -> String {
     }
     let _ = writeln!(s, "end: {}", end_text(&r.end));
     let _ = writeln!(s, "frames: {}", r.frames);
+    if r.kind == Kind::Mooneye {
+        let _ = writeln!(s, "scope: {} ({})", if r.scored { "included" } else { "excluded" }, r.scope);
+        match r.regs {
+            Some(g) => {
+                let _ = writeln!(
+                    s,
+                    "regs at first LD B,B: B={:02X} C={:02X} D={:02X} E={:02X} H={:02X} L={:02X}",
+                    g[0], g[1], g[2], g[3], g[4], g[5]
+                );
+            }
+            None => {
+                let _ = writeln!(s, "regs at first LD B,B: (not reached)");
+            }
+        }
+    }
     let _ = writeln!(s, "\n--- serial ({} bytes) ---", r.serial.len());
     s.push_str(&r.serial_text());
     if !s.ends_with('\n') {
@@ -118,7 +133,7 @@ fn gates_md(results: &[RomResult], opts: &Options, regressions: &[String]) -> St
     }
     let _ = writeln!(s, "| group | rom | result | frames | reason |");
     let _ = writeln!(s, "| --- | --- | --- | --- | --- |");
-    for r in results {
+    for r in results.iter().filter(|r| r.kind != Kind::Mooneye) {
         let reason = r.reason.replace('|', "\\|");
         let _ = writeln!(
             s,
@@ -129,6 +144,29 @@ fn gates_md(results: &[RomResult], opts: &Options, regressions: &[String]) -> St
             r.frames,
             reason
         );
+    }
+    if let Some(raw) = mooneye_raw(results) {
+        let scored: Vec<&RomResult> = results.iter().filter(|r| r.kind == Kind::Mooneye && r.scored).collect();
+        let _ = writeln!(s, "\n## Mooneye\n");
+        let _ = writeln!(
+            s,
+            "scored (DMG-ABC scope, see `mooneye-scope.md`): **{}/{}**; raw (all ROMs): **{raw}**\n",
+            scored.iter().filter(|r| r.pass).count(),
+            scored.len()
+        );
+        let _ = writeln!(s, "| rom | in scope | result | frames | reason |");
+        let _ = writeln!(s, "| --- | --- | --- | --- | --- |");
+        for r in results.iter().filter(|r| r.kind == Kind::Mooneye) {
+            let _ = writeln!(
+                s,
+                "| `{}` | {} | {} | {} | {} |",
+                r.name,
+                if r.scored { "yes" } else { "no" },
+                if r.pass { "PASS" } else { "FAIL" },
+                r.frames,
+                r.reason.replace('|', "\\|")
+            );
+        }
     }
     let _ = writeln!(s, "\nlogs: `logs/<rom>.log`; screenshots: `blargg/<rom>.png`, `acid2-actual.png`, `acid2-diff.png` (on failure).");
     s
@@ -148,7 +186,7 @@ pub fn write_reports(
     std::fs::write(out.join("gates.md"), gates_md(results, opts, regressions))?;
 
     for r in results {
-        let is_acid2 = matches!(r.kind, Kind::Acid2);
+        let is_acid2 = r.kind == Kind::Acid2;
         let mut details = String::new();
         let diff = match (r.diff.as_ref(), r.frame.as_deref(), reference) {
             (Some(d), Some(f), Some(rf)) if d.count > 0 => {
@@ -159,7 +197,12 @@ pub fn write_reports(
             _ => None,
         };
         let log = log_text(r, diff.map(|d| (d, details.as_str())));
-        std::fs::write(out.join("logs").join(format!("{}.log", file_stem(&r.name))), log)?;
+        let log_dir = if r.kind == Kind::Mooneye { out.join("logs/mooneye") } else { out.join("logs") };
+        std::fs::create_dir_all(&log_dir)?;
+        std::fs::write(log_dir.join(format!("{}.log", file_stem(&r.name))), log)?;
+        if r.kind == Kind::Mooneye {
+            continue;
+        }
 
         let frame_ok = r.frame.as_ref().is_some_and(|f| f.len() == FRAME_PIXELS);
         if is_acid2 {
@@ -188,7 +231,34 @@ pub fn write_reports(
             }
         }
     }
+    if results.iter().any(|r| r.kind == Kind::Mooneye) {
+        std::fs::write(out.join("mooneye-scope.md"), mooneye_scope_md(results))?;
+    }
     Ok(())
+}
+
+/// `mooneye-scope.md`：纳入/排除清单及理由（规则见 `gates::mooneye_scope`）。
+pub fn mooneye_scope_md(results: &[RomResult]) -> String {
+    let all: Vec<&RomResult> = results.iter().filter(|r| r.kind == Kind::Mooneye).collect();
+    let inc: Vec<&&RomResult> = all.iter().filter(|r| r.scored).collect();
+    let exc: Vec<&&RomResult> = all.iter().filter(|r| !r.scored).collect();
+    let mut s = String::new();
+    let _ = writeln!(s, "# Mooneye scope (DMG-ABC)\n");
+    let _ = writeln!(s, "Test suite: `$GBEMU_REFS/{}`, {} ROMs.\n", crate::gates::MOONEYE_DIR, all.len());
+    let _ = writeln!(s, "Rules (PLAN §2.4): only `acceptance/` and `emulator-only/`; the model suffix is the part of the file name after the last `-` and before `.gb`. Included: no suffix, a suffix containing `G` (dmg+mgb group, e.g. `-GS`), or a suffix containing `dmgABC` (e.g. `-dmgABC`, `-dmgABCmgb`). Everything else is excluded (`-dmg0`, `-mgb`, `-S`, `-sgb`, `-sgb2`, `-cgb*`, `-A`, `-C`, and the `manual-only/`, `madness/`, `utils/`, `misc/` directories).\n");
+    let pass_inc = inc.iter().filter(|r| r.pass).count();
+    let pass_all = all.iter().filter(|r| r.pass).count();
+    let _ = writeln!(s, "Included: {} / {}; passing: {pass_inc}/{} (scored), {pass_all}/{} (raw).\n", inc.len(), all.len(), inc.len(), all.len());
+    for (title, list) in [("Included", &inc), ("Excluded", &exc)] {
+        let _ = writeln!(s, "## {title} ({})\n", list.len());
+        let _ = writeln!(s, "| rom | reason | result |");
+        let _ = writeln!(s, "| --- | --- | --- |");
+        for r in list.iter() {
+            let _ = writeln!(s, "| `{}` | {} | {} |", r.name, r.scope, if r.pass { "PASS" } else { "FAIL" });
+        }
+        s.push('\n');
+    }
+    s
 }
 
 fn remove_stale(p: &Path) -> io::Result<()> {

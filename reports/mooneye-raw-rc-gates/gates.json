@@ -1,0 +1,2238 @@
+{
+  "summary": "G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 66/94",
+  "mooneye_raw": "67/115",
+  "fast": false,
+  "only": null,
+  "results": [
+    {
+      "group": "G1",
+      "name": "01-special",
+      "rom": "blargg/cpu_instrs/individual/01-special.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 140,
+      "serial": "01-special\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "02-interrupts",
+      "rom": "blargg/cpu_instrs/individual/02-interrupts.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 26,
+      "serial": "02-interrupts\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "03-op sp,hl",
+      "rom": "blargg/cpu_instrs/individual/03-op sp,hl.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 141,
+      "serial": "03-op sp,hl\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "04-op r,imm",
+      "rom": "blargg/cpu_instrs/individual/04-op r,imm.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 164,
+      "serial": "04-op r,imm\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "05-op rp",
+      "rom": "blargg/cpu_instrs/individual/05-op rp.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 225,
+      "serial": "05-op rp\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "06-ld r,r",
+      "rom": "blargg/cpu_instrs/individual/06-ld r,r.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 35,
+      "serial": "06-ld r,r\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "07-jr,jp,call,ret,rst",
+      "rom": "blargg/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 43,
+      "serial": "07-jr,jp,call,ret,rst\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "08-misc instrs",
+      "rom": "blargg/cpu_instrs/individual/08-misc instrs.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 33,
+      "serial": "08-misc instrs\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "09-op r,r",
+      "rom": "blargg/cpu_instrs/individual/09-op r,r.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 546,
+      "serial": "09-op r,r\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "10-bit ops",
+      "rom": "blargg/cpu_instrs/individual/10-bit ops.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 829,
+      "serial": "10-bit ops\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "11-op a,(hl)",
+      "rom": "blargg/cpu_instrs/individual/11-op a,(hl).gb",
+      "pass": true,
+      "reason": "",
+      "frames": 1051,
+      "serial": "11-op a,(hl)\n\n\nPassed\n"
+    },
+    {
+      "group": "G1",
+      "name": "cpu_instrs",
+      "rom": "blargg/cpu_instrs/cpu_instrs.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 3196,
+      "serial": "cpu_instrs\n\n01:ok  02:ok  03:ok  04:ok  05:ok  06:ok  07:ok  08:ok  09:ok  10:ok  11:ok  \n\nPassed all tests\n"
+    },
+    {
+      "group": "G2",
+      "name": "instr_timing",
+      "rom": "blargg/instr_timing/instr_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 39,
+      "serial": "instr_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "mem_timing",
+      "rom": "blargg/mem_timing/mem_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 91,
+      "serial": "mem_timing\n\n01:ok  02:ok  03:ok  \n\nPassed all tests\n"
+    },
+    {
+      "group": "G3",
+      "name": "01-read_timing",
+      "rom": "blargg/mem_timing/individual/01-read_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 28,
+      "serial": "01-read_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "02-write_timing",
+      "rom": "blargg/mem_timing/individual/02-write_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 27,
+      "serial": "02-write_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G3",
+      "name": "03-modify_timing",
+      "rom": "blargg/mem_timing/individual/03-modify_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 30,
+      "serial": "03-modify_timing\n\n\nPassed\n"
+    },
+    {
+      "group": "G4",
+      "name": "dmg-acid2",
+      "rom": "acid2/dmg-acid2.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 20,
+      "serial": "",
+      "diff_pixels": 0,
+      "diff_bbox": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/add_sp_e_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/add_sp_e_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/bits/mem_oam",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/bits/mem_oam.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/bits/reg_f",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/bits/reg_f.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/bits/unused_hwio-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/bits/unused_hwio-GS.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_div-S",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_div-S.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -S does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_div-dmg0",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_div-dmg0.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -dmg0 does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_div-dmgABCmgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_div-dmgABCmgb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -dmgABCmgb contains dmgABC",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_div2-S",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_div2-S.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -S does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_hwio-S",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_hwio-S.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -S does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_hwio-dmg0",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_hwio-dmg0.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -dmg0 does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_hwio-dmgABCmgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_hwio-dmgABCmgb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -dmgABCmgb contains dmgABC",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_regs-dmg0",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-dmg0.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -dmg0 does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_regs-dmgABC",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-dmgABC.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -dmgABC contains dmgABC",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_regs-mgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-mgb.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -mgb does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_regs-sgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-sgb.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -sgb does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/boot_regs-sgb2",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/boot_regs-sgb2.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "suffix -sgb2 does not cover DMG-ABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/call_cc_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/call_cc_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/call_cc_timing2",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/call_cc_timing2.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/call_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/call_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/call_timing2",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/call_timing2.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/di_timing-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/di_timing-GS.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 15,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/div_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/div_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ei_sequence",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ei_sequence.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ei_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ei_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/halt_ime0_ei",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/halt_ime0_ei.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/halt_ime0_nointr_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/halt_ime0_nointr_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/halt_ime1_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/halt_ime1_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/halt_ime1_timing2-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/halt_ime1_timing2-GS.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 18,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/if_ie_registers",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/if_ie_registers.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/instr/daa",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/instr/daa.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 22,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/interrupts/ie_push",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/interrupts/ie_push.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/intr_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/intr_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/jp_cc_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/jp_cc_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/jp_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/jp_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ld_hl_sp_e_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ld_hl_sp_e_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma/basic",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma/basic.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma/reg_read",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma/reg_read.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma/sources-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma/sources-GS.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x1B",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma_restart",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma_restart.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma_start",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma_start.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/oam_dma_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/oam_dma_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/pop_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/pop_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/hblank_ly_scx_timing-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/hblank_ly_scx_timing-GS.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 17,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_1_2_timing-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_1_2_timing-GS.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_2_0_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_2_0_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 12,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_2_mode0_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_2_mode0_timing.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 12,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_2_mode0_timing_sprites",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_2_mode0_timing_sprites.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 20,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_2_mode3_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_2_mode3_timing.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 12,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/intr_2_oam_ok_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/intr_2_oam_ok_timing.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 12,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/lcdon_timing-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/lcdon_timing-GS.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 18,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/lcdon_write_timing-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/lcdon_write_timing-GS.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 35,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/stat_irq_blocking",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/stat_irq_blocking.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 11,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/stat_lyc_onoff",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/stat_lyc_onoff.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ppu/vblank_stat_intr-GS",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ppu/vblank_stat_intr-GS.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 18,
+      "serial": "",
+      "scored": true,
+      "scope": "suffix -GS contains G (dmg+mgb)",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/push_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/push_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/rapid_di_ei",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/rapid_di_ei.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ret_cc_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ret_cc_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/ret_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/ret_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/reti_intr_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/reti_intr_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/reti_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/reti_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 14,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/rst_timing",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/rst_timing.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/serial/boot_sclk_align-dmgABCmgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/serial/boot_sclk_align-dmgABCmgb.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "\u0000",
+      "scored": true,
+      "scope": "suffix -dmgABCmgb contains dmgABC",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/div_write",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/div_write.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 51,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/rapid_toggle",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/rapid_toggle.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim00",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim00.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim00_div_trigger",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim00_div_trigger.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim01",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim01.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim01_div_trigger",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim01_div_trigger.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim10",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim10.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim10_div_trigger",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim10_div_trigger.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim11",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim11.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tim11_div_trigger",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tim11_div_trigger.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tima_reload",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tima_reload.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tima_write_reloading",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tima_write_reloading.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "acceptance/timer/tma_write_reloading",
+      "rom": "mooneye/mts-20260714-0944-31510e1/acceptance/timer/tma_write_reloading.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/bits_bank1",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/bits_bank1.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 178,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/bits_bank2",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/bits_bank2.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 175,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/bits_mode",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/bits_mode.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 178,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/bits_ramg",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/bits_ramg.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 348,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/multicart_rom_8Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/multicart_rom_8Mb.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 11,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/ram_256kb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/ram_256kb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 55,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/ram_64kb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/ram_64kb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 55,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_16Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_16Mb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_1Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_1Mb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_2Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_2Mb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_4Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_4Mb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_512kb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_512kb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc1/rom_8Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc1/rom_8Mb.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 13,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/bits_ramg",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/bits_ramg.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x06",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/bits_romb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/bits_romb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x06",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/bits_unused",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/bits_unused.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x06",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/ram",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/ram.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x06",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/rom_1Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/rom_1Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x05",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/rom_2Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/rom_2Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x05",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc2/rom_512kb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc2/rom_512kb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x05",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_16Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_16Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_1Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_1Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_2Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_2Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_32Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_32Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_4Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_4Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_512kb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_512kb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_64Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_64Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "emulator-only/mbc5/rom_8Mb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/emulator-only/mbc5/rom_8Mb.gb",
+      "pass": false,
+      "reason": "error: cart: unsupported cartridge type 0x19",
+      "frames": 0,
+      "serial": "",
+      "scored": true,
+      "scope": "no model suffix",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "madness/mgb_oam_dma_halt_sprites",
+      "rom": "mooneye/mts-20260714-0944-31510e1/madness/mgb_oam_dma_halt_sprites.gb",
+      "pass": false,
+      "reason": "timeout: no LD B,B within 1792 frames",
+      "frames": 1792,
+      "serial": "",
+      "scored": false,
+      "scope": "directory madness/ is not acceptance/ or emulator-only/",
+      "regs": null
+    },
+    {
+      "group": "MOONEYE",
+      "name": "manual-only/sprite_priority",
+      "rom": "mooneye/mts-20260714-0944-31510e1/manual-only/sprite_priority.gb",
+      "pass": false,
+      "reason": "unexpected registers at LD B,B (B=00 C=00 D=02 E=2E H=FF L=40)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory manual-only/ is not acceptance/ or emulator-only/",
+      "regs": [
+        0,
+        0,
+        2,
+        46,
+        255,
+        64
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/bits/unused_hwio-C",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/bits/unused_hwio-C.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_div-A",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_div-A.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_div-cgb0",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_div-cgb0.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_div-cgbABCDE",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_div-cgbABCDE.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_hwio-C",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_hwio-C.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_regs-A",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_regs-A.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/boot_regs-cgb",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/boot_regs-cgb.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "misc/ppu/vblank_stat_intr-C",
+      "rom": "mooneye/mts-20260714-0944-31510e1/misc/ppu/vblank_stat_intr-C.gb",
+      "pass": false,
+      "reason": "test reported failure (B=42 C=42 D=42 E=42 H=42 L=42)",
+      "frames": 18,
+      "serial": "",
+      "scored": false,
+      "scope": "directory misc/ is not acceptance/ or emulator-only/",
+      "regs": [
+        66,
+        66,
+        66,
+        66,
+        66,
+        66
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "utils/bootrom_dumper",
+      "rom": "mooneye/mts-20260714-0944-31510e1/utils/bootrom_dumper.gb",
+      "pass": false,
+      "reason": "unexpected registers at LD B,B (B=00 C=00 D=09 E=00 H=FF L=40)",
+      "frames": 50,
+      "serial": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "scored": false,
+      "scope": "directory utils/ is not acceptance/ or emulator-only/",
+      "regs": [
+        0,
+        0,
+        9,
+        0,
+        255,
+        64
+      ]
+    },
+    {
+      "group": "MOONEYE",
+      "name": "utils/dump_boot_hwio",
+      "rom": "mooneye/mts-20260714-0944-31510e1/utils/dump_boot_hwio.gb",
+      "pass": true,
+      "reason": "",
+      "frames": 10,
+      "serial": "",
+      "scored": false,
+      "scope": "directory utils/ is not acceptance/ or emulator-only/",
+      "regs": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ]
+    }
+  ]
+}

@@ -1,55 +1,87 @@
-//! PPU（ppu 通道，T40–T42）：逐扫描线渲染加双缓冲（PLAN §3.5）。
+//! PPU（ppu 通道，T40–T42；W4 精确时序）：逐扫描线渲染加双缓冲（PLAN §3.5）。
 //!
 //! 冻结部分（D001）：`Ppu::new`、VRAM/OAM 访问方法、`dma_write_oam`、`frame`、`Peripheral` 实现
 //! （`tick_mcycle` 返回 VBlank/STAT 中断位；`read_reg`/`write_reg` 处理 FF40–FF45、FF47–FF4B；
 //! FF46 归 `dma.rs`）、`Snapshot`。VRAM 与 OAM 数组由本模块持有，Bus 只做转发。
 //!
-//! # 时序模型（Pan Docs `Rendering.md`、`STAT.md`）
+//! # 时序模型（Pan Docs `Rendering.md`、`STAT.md`、`Accessing_VRAM_and_OAM.md`）
 //!
-//! 每行 456 dot，共 154 行。可见行（LY 0–143）：dot 0–79 为 mode 2（OAM scan），
-//! dot 80–251 为 mode 3（固定 172 dot），dot 252–455 为 mode 0；LY 144–153 为 mode 1。
-//! `tick_mcycle` 每次推进 4 dot，只在到达下一个事件点（mode 切换、行尾）时做事。
+//! 每行 456 dot，共 154 行；`tick_mcycle` 每次推进 4 dot，只在到达下一个事件点时做事。
+//! 下面的 dot 都是"M-cycle 采样网格"上的位置：Bus 先推进外设再访问，所以第 k 次 tick 之后的访问
+//! 看到的是 dot 4k 的状态；硬件上发生在两个采样点之间的变化，记在它之后的第一个采样点上。
+//! 以 LY 变为新值的那个采样点为本行 dot 0，可见行（LY 0–143）依次是：
+//!
+//! | dot | 事件 |
+//! | --- | --- |
+//! | 0 | LY 更新；STAT 的 LYC=LY 位暂时读 0，mode 位仍是上一行的；OAM 读封锁 |
+//! | 4 | mode 2 开始：mode 2 中断源、LYC 比较（中断与 STAT 位）、STAT 读 mode 2；OAM 写封锁 |
+//! | 80 | VRAM 读封锁；OAM 写短暂放开 |
+//! | 84 | mode 3 开始：OAM scan、STAT 读 mode 3，VRAM/OAM 读写全部封锁 |
+//! | 253+p | STAT 读 mode 0，解除封锁 |
+//! | 256+p | 内部进入 mode 0：mode 0 中断源，画完本行 |
+//!
+//! 其中 p 是 mode 3 的额外长度（`Rendering.md` "Mode 3 length"）：SCX%8、窗口 6 dot、每个精灵 6–11 dot。
+//! 非 4 的倍数的事件在之后第一个采样点生效。VBlank 行在 dot 4 做 LYC 比较；LY=144 在 dot 4 进入 mode 1、
+//! 请求 VBlank 中断，并且 mode 2 中断源在这 1 个 M-cycle 内也有效（与 VBlank 同时请求 STAT 中断）。
 //!
 //! # 渲染时机
 //!
-//! 进入 mode 3 时做 OAM scan 并开始本行；mode 3 内第 x 个像素视为在 dot `92 + x` 输出
-//! （mode 3 开头 12 dot 是两次 tile fetch，`Rendering.md` "Mode 3 length"）。像素在以下时刻提交到后缓冲：
+//! 进入 mode 3 时做 OAM scan 并开始本行；mode 3 内第 x 个像素视为在 mode 3 开始后 `12 + SCX%8 + x` dot 输出
+//! （开头两次 tile fetch 共 12 dot，再丢弃 SCX%8 个像素）。像素在以下时刻提交到后缓冲：
 //! - 进入 mode 0 时，把本行剩余像素一次画完（通常就是整行一次画完）；
 //! - mode 3 期间 CPU 写 PPU 寄存器、VRAM 或 OAM（含 DMA 写入）时，先把"已经输出"的像素画完，再让写入生效。
 //!
-//! 因此 mode 2 期间（以及 mode 3 最初 12 dot 内）对寄存器的修改作用于整行，mode 0/1 的修改作用于下一行；
+//! 因此 mode 2 期间（以及 mode 3 开头的取 tile 期间）对寄存器的修改作用于整行，mode 0/1 的修改作用于下一行；
 //! 绝大多数行只渲染一次，tick 内没有逐 dot 的工作。
 //!
 //! # STAT 中断
 //!
 //! 内部 STAT 中断线 = (LYC=LY 且 bit6) OR (mode 0 且 bit3) OR (mode 1 且 bit4) OR (mode 2 且 bit5)，
 //! 只在其从 0 变为 1 时请求一次；某个源保持为高时，其他源再变高不会再次触发（`STAT.md`、`Interrupt_Sources.md`）。
-//! DMG 上进入 LY=144 的第一个 M-cycle 里 mode 2 源也有效（与 VBlank 同时请求 STAT 中断）。
 //!
 //! # LCD 开关（`LCDC.md`、`STAT.md`）
 //!
-//! 关闭：LY=0、mode=0，前缓冲置为全白一次，此后 tick 不推进 PPU；LYC=LY 标志与中断线保持关闭前的值。
-//! 开启：从 LY=0 的行首开始，重新比较 LYC；这一行不做 OAM scan，dot 0–79 期间 STAT 报告 mode 0。
+//! 关闭：LY=0、mode=0，前缓冲置为全白一次，此后 tick 不推进 PPU；LYC=LY 标志与中断线保持关闭前的值
+//! （比较电路不工作），VRAM/OAM 不封锁。
+//! 开启：从 LY=0 开始，立即重新比较 LYC。这一行不做 OAM scan：dot 0–79 读 mode 0、不封锁，
+//! dot 80 起是 mode 3，之后各事件比普通行早 4 dot，整行 452 dot。
 
 mod render;
 
 use crate::state::{Snapshot, StateError, StateReader, StateWriter};
-use crate::{irq, Frame, Peripheral, FRAME_PIXELS, SCREEN_H};
+use crate::{irq, Frame, Peripheral, FRAME_PIXELS, SCREEN_H, SCREEN_W};
 
 /// 每行的 dot 数。
 const LINE_DOTS: u16 = 456;
+/// LCD 开启后第 0 行的 dot 数。
+const FIRST_LINE_DOTS: u16 = LINE_DOTS - 4;
 /// 每帧的行数。
 const LINES: u8 = 154;
-/// mode 3 开始的 dot（mode 2 占 80 dot）。
-const MODE3_START: u16 = 80;
-/// mode 0 开始的 dot（mode 3 固定 172 dot）。
-const MODE0_START: u16 = MODE3_START + 172;
-/// 第 0 个像素输出的 dot（mode 3 开头两次 tile fetch 共 12 dot）。
-const FIRST_PIXEL_DOT: u16 = MODE3_START + 12;
+/// mode 2 开始（以及 LYC 比较、VBlank 开始）的 dot。
+const MODE2_DOT: u16 = 4;
+/// VRAM 读封锁开始的 dot。
+const VRAM_LOCK_DOT: u16 = 80;
+/// 普通行 mode 3 开始的 dot。
+const MODE3_DOT: u16 = 84;
+/// LCD 开启后第 0 行 mode 3 开始的 dot。
+const FIRST_LINE_MODE3_DOT: u16 = 80;
+/// mode 3 开始到 STAT 读出 mode 0 的最短 dot 数。
+const MODE3_VISIBLE_DOTS: u16 = 169;
+/// STAT 读出 mode 0 到内部进入 mode 0 的 dot 数。
+const MODE0_LAG_DOTS: u16 = 3;
+/// mode 3 开始到第 0 个像素输出的 dot 数（两次 tile fetch）。
+const FIRST_PIXEL_DOTS: u16 = 12;
 /// 进入 LY=144 后 mode 2 中断源保持有效的 dot 数（1 个 M-cycle）。
 const VBLANK_MODE2_DOTS: u16 = 4;
 /// 每行最多选中的精灵数。
 const MAX_LINE_OBJS: usize = 10;
+
+/// 访问封锁位。
+const LOCK_OAM_R: u8 = 1 << 0;
+const LOCK_OAM_W: u8 = 1 << 1;
+const LOCK_VRAM_R: u8 = 1 << 2;
+const LOCK_VRAM_W: u8 = 1 << 3;
+const LOCK_ALL: u8 = LOCK_OAM_R | LOCK_OAM_W | LOCK_VRAM_R | LOCK_VRAM_W;
 
 /// 开机（PC=0x0100）时 PPU 在第 153 行内的 dot 位置。
 ///
@@ -57,10 +89,10 @@ const MAX_LINE_OBJS: usize = 10;
 /// VBlank 行、LY 已读作 0。行内的具体位置文档未给出，这里取距第 0 行开始 56 dot。
 const BOOT_DOT: u16 = LINE_DOTS - 56;
 
-/// PPU 在一行内所处的阶段（决定 STAT 的 mode 位与 STAT 中断源）。
+/// PPU 内部所处的阶段（决定 STAT 中断源与渲染）。STAT 读到的 mode 位单独记在 `stat_mode`。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Phase {
-    /// LCD 刚开启后的第 0 行 dot 0–79：不做 OAM scan，STAT 报告 mode 0，不提供 mode 中断源。
+    /// LCD 刚开启后的第 0 行、mode 3 之前：不做 OAM scan，不提供 mode 中断源。
     LcdOnLine0,
     /// mode 2。
     OamScan,
@@ -93,15 +125,55 @@ impl Phase {
             _ => return None,
         })
     }
+}
 
-    /// STAT bit1–0 报告的 mode。
-    fn mode(self) -> u8 {
+/// 下一个事件（见顶部的时序表）。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Ev {
+    /// 可见行 dot 4。
+    OamScan,
+    /// 可见行 dot 80。
+    VramLock,
+    /// mode 3 开始。
+    Drawing,
+    /// STAT 读出 mode 0、解除封锁。
+    Mode0Visible,
+    /// 内部进入 mode 0。
+    HBlank,
+    /// VBlank 行 dot 4。
+    VBlankLine,
+    /// LY=144 dot 8：mode 2 中断源结束。
+    VBlankMode2End,
+    /// 行尾。
+    LineEnd,
+}
+
+impl Ev {
+    fn to_u8(self) -> u8 {
         match self {
-            Phase::LcdOnLine0 | Phase::HBlank => 0,
-            Phase::VBlank => 1,
-            Phase::OamScan => 2,
-            Phase::Drawing => 3,
+            Ev::OamScan => 0,
+            Ev::VramLock => 1,
+            Ev::Drawing => 2,
+            Ev::Mode0Visible => 3,
+            Ev::HBlank => 4,
+            Ev::VBlankLine => 5,
+            Ev::VBlankMode2End => 6,
+            Ev::LineEnd => 7,
         }
+    }
+
+    fn from_u8(v: u8) -> Option<Self> {
+        Some(match v {
+            0 => Ev::OamScan,
+            1 => Ev::VramLock,
+            2 => Ev::Drawing,
+            3 => Ev::Mode0Visible,
+            4 => Ev::HBlank,
+            5 => Ev::VBlankLine,
+            6 => Ev::VBlankMode2End,
+            7 => Ev::LineEnd,
+            _ => return None,
+        })
     }
 }
 
@@ -109,7 +181,7 @@ impl Phase {
 pub struct Ppu {
     vram: [u8; 0x2000],
     oam: [u8; 0xA0],
-    /// 最近一个完整帧（进入 LY=144 时由后缓冲交换而来）。
+    /// 最近一个完整帧（进入 VBlank 时由后缓冲交换而来）。
     front: Box<Frame>,
     /// 正在绘制的帧。
     back: Box<Frame>,
@@ -132,18 +204,27 @@ pub struct Ppu {
     // ---- 时序 ----
     /// 当前扫描线 0..=153（调度用）。
     line: u8,
-    /// 行内 dot 0..456。
+    /// 行内 dot。
     dot: u16,
-    /// 下一个事件的 dot（mode 切换或行尾）。
+    /// 下一个事件及其 dot。
+    ev: Ev,
     next_event: u16,
+    /// LCD 开启后的第 0 行（行长 452 dot，没有 mode 2）。
+    first_line: bool,
     phase: Phase,
-    /// STAT bit2（LYC=LY）。LCD 关闭期间保持不变。
+    /// STAT bit1–0 读到的 mode。
+    stat_mode: u8,
+    /// 内部 LYC=LY 比较结果（驱动 STAT 中断线）。LCD 关闭期间保持不变。
     lyc_match: bool,
+    /// STAT bit2 读到的值（行首 dot 0–3 为 0）。LCD 关闭期间保持不变。
+    lyc_flag: bool,
+    /// 当前的 VRAM/OAM 访问封锁（`LOCK_*`）。
+    locks: u8,
     /// 进入 LY=144 的第一个 M-cycle：mode 2 中断源仍有效。
     vblank_mode2: bool,
     /// 内部 STAT 中断线的当前电平（上升沿触发）。
     stat_line: bool,
-    /// 寄存器写入引起、尚未交给 Bus 的中断位（下一次 `tick_mcycle` 或 `take_irq` 返回）。
+    /// 寄存器写入引起、尚未交给 Bus 的中断位（`take_irq` 或下一次 `tick_mcycle` 返回）。
     irq_pending: u8,
 
     // ---- 窗口 ----
@@ -155,6 +236,8 @@ pub struct Ppu {
     win_drawn: bool,
 
     // ---- 当前行的渲染进度 ----
+    /// 当前行第 0 个像素输出的 dot。
+    first_pixel_dot: u16,
     /// 当前行已提交到后缓冲的像素数（mode 3 期间有效）。
     drawn_x: u8,
     /// OAM scan 选中的精灵个数（≤10）。
@@ -191,42 +274,71 @@ impl Ppu {
             wx: 0,
             line: LINES - 1,
             dot: BOOT_DOT,
+            ev: Ev::LineEnd,
             next_event: LINE_DOTS,
+            first_line: false,
             phase: Phase::VBlank,
+            stat_mode: 1,
             lyc_match: false,
+            lyc_flag: false,
+            locks: 0,
             vblank_mode2: false,
             stat_line: false,
             irq_pending: 0,
             win_y_hit: false,
             win_line: 0,
             win_drawn: false,
+            first_pixel_dot: MODE3_DOT + FIRST_PIXEL_DOTS,
             drawn_x: 0,
             obj_count: 0,
             objs: [0; MAX_LINE_OBJS],
         };
         p.lyc_match = p.ly == p.lyc;
+        p.lyc_flag = p.lyc_match;
         p.stat_line = p.stat_signal();
         p
     }
 
-    /// CPU 读 VRAM，`addr` 为绝对地址 0x8000..=0x9FFF。无副作用（`peek` 也走这里）。
-    pub fn read_vram(&self, addr: u16) -> u8 {
+    /// 调试读 VRAM（`Machine::peek`、OAM DMA 取源）：不受访问封锁影响（新增方法，非冻结接口）。
+    pub fn peek_vram(&self, addr: u16) -> u8 {
         self.vram[(addr & 0x1FFF) as usize]
     }
 
-    /// CPU 写 VRAM，`addr` 为绝对地址 0x8000..=0x9FFF。
+    /// 调试读 OAM（`Machine::peek`）：不受访问封锁影响（新增方法，非冻结接口）。
+    pub fn peek_oam(&self, addr: u16) -> u8 {
+        self.oam[(addr as usize).wrapping_sub(0xFE00) % 0xA0]
+    }
+
+    /// CPU 读 VRAM，`addr` 为绝对地址 0x8000..=0x9FFF。mode 3 期间读到 0xFF（`Accessing_VRAM_and_OAM.md`）。无副作用。
+    pub fn read_vram(&self, addr: u16) -> u8 {
+        if self.locks & LOCK_VRAM_R != 0 {
+            return 0xFF;
+        }
+        self.vram[(addr & 0x1FFF) as usize]
+    }
+
+    /// CPU 写 VRAM，`addr` 为绝对地址 0x8000..=0x9FFF。mode 3 期间写入被忽略。
     pub fn write_vram(&mut self, addr: u16, v: u8) {
+        if self.locks & LOCK_VRAM_W != 0 {
+            return;
+        }
         self.catch_up();
         self.vram[(addr & 0x1FFF) as usize] = v;
     }
 
-    /// CPU 读 OAM，`addr` 为绝对地址 0xFE00..=0xFE9F。无副作用。
+    /// CPU 读 OAM，`addr` 为绝对地址 0xFE00..=0xFE9F。mode 2/3 期间读到 0xFF（`Accessing_VRAM_and_OAM.md`）。无副作用。
     pub fn read_oam(&self, addr: u16) -> u8 {
+        if self.locks & LOCK_OAM_R != 0 {
+            return 0xFF;
+        }
         self.oam[(addr as usize).wrapping_sub(0xFE00) % 0xA0]
     }
 
-    /// CPU 写 OAM，`addr` 为绝对地址 0xFE00..=0xFE9F。
+    /// CPU 写 OAM，`addr` 为绝对地址 0xFE00..=0xFE9F。mode 2/3 期间写入被忽略。
     pub fn write_oam(&mut self, addr: u16, v: u8) {
+        if self.locks & LOCK_OAM_W != 0 {
+            return;
+        }
         self.catch_up();
         self.oam[(addr as usize).wrapping_sub(0xFE00) % 0xA0] = v;
     }
@@ -278,6 +390,19 @@ impl Ppu {
         }
     }
 
+    fn schedule(&mut self, ev: Ev, dot: u16) {
+        self.ev = ev;
+        self.next_event = dot;
+    }
+
+    fn line_dots(&self) -> u16 {
+        if self.first_line {
+            FIRST_LINE_DOTS
+        } else {
+            LINE_DOTS
+        }
+    }
+
     /// 处理所有已到期的事件，返回新请求的中断位。
     fn run_events(&mut self) -> u8 {
         let mut req = 0;
@@ -288,72 +413,108 @@ impl Ppu {
     }
 
     fn event(&mut self) -> u8 {
-        if self.next_event >= LINE_DOTS {
-            self.dot -= LINE_DOTS;
-            let next = if self.line + 1 >= LINES {
-                0
-            } else {
-                self.line + 1
-            };
-            return self.start_line(next);
-        }
-        match self.phase {
-            Phase::OamScan | Phase::LcdOnLine0 => self.enter_drawing(),
-            Phase::Drawing => self.enter_hblank(),
-            Phase::VBlank => {
-                // LY=144 的 mode 2 中断源只持续 1 个 M-cycle。
-                self.vblank_mode2 = false;
-                self.next_event = LINE_DOTS;
+        match self.ev {
+            Ev::LineEnd => {
+                self.dot -= self.line_dots();
+                self.first_line = false;
+                let next = if self.line + 1 >= LINES {
+                    0
+                } else {
+                    self.line + 1
+                };
+                self.start_line(next);
+                return 0;
             }
-            Phase::HBlank => self.next_event = LINE_DOTS,
+            Ev::OamScan => {
+                self.phase = Phase::OamScan;
+                self.stat_mode = 2;
+                self.compare_lyc();
+                self.locks |= LOCK_OAM_W;
+                if self.wy == self.line {
+                    self.win_y_hit = true;
+                }
+                self.schedule(Ev::VramLock, VRAM_LOCK_DOT);
+            }
+            Ev::VramLock => {
+                self.locks = LOCK_OAM_R | LOCK_VRAM_R;
+                self.schedule(Ev::Drawing, MODE3_DOT);
+            }
+            Ev::Drawing => self.enter_drawing(),
+            Ev::Mode0Visible => {
+                self.stat_mode = 0;
+                self.locks = 0;
+                self.schedule(Ev::HBlank, self.next_event + MODE0_LAG_DOTS);
+            }
+            Ev::HBlank => self.enter_hblank(),
+            Ev::VBlankLine => {
+                self.compare_lyc();
+                if self.line as usize == SCREEN_H {
+                    self.phase = Phase::VBlank;
+                    self.stat_mode = 1;
+                    self.vblank_mode2 = true;
+                    std::mem::swap(&mut self.front, &mut self.back);
+                    self.win_y_hit = false;
+                    self.win_line = 0;
+                    self.schedule(Ev::VBlankMode2End, MODE2_DOT + VBLANK_MODE2_DOTS);
+                    return irq::VBLANK | self.update_stat();
+                }
+                self.schedule(Ev::LineEnd, LINE_DOTS);
+            }
+            Ev::VBlankMode2End => {
+                self.vblank_mode2 = false;
+                self.schedule(Ev::LineEnd, LINE_DOTS);
+            }
         }
         self.update_stat()
     }
 
-    /// 行首：更新 LY 与 LYC 比较、mode，检查窗口 Y 条件；进入 LY=144 时请求 VBlank 并交换缓冲。
-    fn start_line(&mut self, line: u8) -> u8 {
+    /// 行首（dot 0）：LY 更新，STAT 的 LYC=LY 位在 dot 4 比较之前读 0；可见行封锁 OAM 读。
+    fn start_line(&mut self, line: u8) {
         self.line = line;
         self.ly = line;
-        self.lyc_match = self.ly == self.lyc;
-        let mut req = 0;
+        self.lyc_flag = false;
         if (line as usize) < SCREEN_H {
-            self.phase = Phase::OamScan;
-            self.next_event = MODE3_START;
-            if self.wy == line {
-                self.win_y_hit = true;
-            }
-        } else if line as usize == SCREEN_H {
-            self.phase = Phase::VBlank;
-            self.vblank_mode2 = true;
-            self.next_event = VBLANK_MODE2_DOTS;
-            std::mem::swap(&mut self.front, &mut self.back);
-            self.win_y_hit = false;
-            self.win_line = 0;
-            req |= irq::VBLANK;
+            self.locks = LOCK_OAM_R;
+            self.schedule(Ev::OamScan, MODE2_DOT);
         } else {
-            self.phase = Phase::VBlank;
-            self.next_event = LINE_DOTS;
+            self.schedule(Ev::VBlankLine, MODE2_DOT);
         }
-        req | self.update_stat()
     }
 
-    /// 进入 mode 3：OAM scan（按此刻的 LCDC.2），开始本行的渲染。
+    /// LYC 比较：同时更新中断用的比较结果与 STAT bit2。
+    fn compare_lyc(&mut self) {
+        self.lyc_match = self.ly == self.lyc;
+        self.lyc_flag = self.lyc_match;
+    }
+
+    /// 行首到 dot 4 之间（尚未比较 LYC）。
+    fn before_lyc_compare(&self) -> bool {
+        matches!(self.ev, Ev::OamScan | Ev::VBlankLine)
+    }
+
+    /// 进入 mode 3：OAM scan（按此刻的 LCDC.2），算出本行 mode 3 的额外长度，开始本行的渲染。
     fn enter_drawing(&mut self) {
+        let start = self.next_event;
         self.phase = Phase::Drawing;
-        self.next_event = MODE0_START;
+        self.stat_mode = 3;
+        self.locks = LOCK_ALL;
         self.oam_scan();
         self.drawn_x = 0;
         self.win_drawn = false;
+        self.first_pixel_dot = start + FIRST_PIXEL_DOTS + (self.scx & 7) as u16;
+        let extra = self.mode3_penalty();
+        self.schedule(Ev::Mode0Visible, start + MODE3_VISIBLE_DOTS + extra);
     }
 
-    /// 进入 mode 0：画完本行剩余像素；本行画过窗口时窗口行计数器加 1。
+    /// 内部进入 mode 0：画完本行剩余像素；本行画过窗口时窗口行计数器加 1。
     fn enter_hblank(&mut self) {
-        self.render_to(crate::SCREEN_W);
+        self.render_to(SCREEN_W);
         if self.win_drawn {
             self.win_line = self.win_line.wrapping_add(1);
         }
         self.phase = Phase::HBlank;
-        self.next_event = LINE_DOTS;
+        let end = self.line_dots();
+        self.schedule(Ev::LineEnd, end);
     }
 
     /// mode 3 期间发生 PPU 可见的写入之前调用：把已经输出的像素先画到后缓冲。
@@ -361,8 +522,8 @@ impl Ppu {
         if self.phase == Phase::Drawing && self.lcd_on() {
             let x = self
                 .dot
-                .saturating_sub(FIRST_PIXEL_DOT)
-                .min(crate::SCREEN_W as u16);
+                .saturating_sub(self.first_pixel_dot)
+                .min(SCREEN_W as u16);
             self.render_to(x as usize);
         }
     }
@@ -380,8 +541,11 @@ impl Ppu {
         self.line = 0;
         self.ly = 0;
         self.dot = 0;
+        self.first_line = false;
         self.phase = Phase::HBlank;
-        self.next_event = LINE_DOTS;
+        self.stat_mode = 0;
+        self.locks = 0;
+        self.schedule(Ev::LineEnd, LINE_DOTS);
         self.vblank_mode2 = false;
         self.drawn_x = 0;
         self.obj_count = 0;
@@ -393,15 +557,18 @@ impl Ppu {
         self.line = 0;
         self.ly = 0;
         self.dot = 0;
+        self.first_line = true;
         self.phase = Phase::LcdOnLine0;
-        self.next_event = MODE3_START;
+        self.stat_mode = 0;
+        self.locks = 0;
+        self.schedule(Ev::Drawing, FIRST_LINE_MODE3_DOT);
         self.vblank_mode2 = false;
         self.drawn_x = 0;
         self.obj_count = 0;
         self.win_y_hit = self.wy == 0;
         self.win_line = 0;
         self.win_drawn = false;
-        self.lyc_match = self.ly == self.lyc;
+        self.compare_lyc();
         self.irq_pending |= self.update_stat();
     }
 }
@@ -423,8 +590,8 @@ impl Peripheral for Ppu {
         match addr {
             0xFF40 => self.lcdc,
             0xFF41 => {
-                let mode = if self.lcd_on() { self.phase.mode() } else { 0 };
-                0x80 | self.stat_sel | ((self.lyc_match as u8) << 2) | mode
+                let mode = if self.lcd_on() { self.stat_mode } else { 0 };
+                0x80 | self.stat_sel | ((self.lyc_flag as u8) << 2) | mode
             }
             0xFF42 => self.scy,
             0xFF43 => self.scx,
@@ -465,6 +632,9 @@ impl Peripheral for Ppu {
                 self.lyc = v;
                 if self.lcd_on() {
                     self.lyc_match = self.ly == v;
+                    if !self.before_lyc_compare() {
+                        self.lyc_flag = self.lyc_match;
+                    }
                     self.irq_pending |= self.update_stat();
                 }
             }
@@ -509,15 +679,21 @@ impl Snapshot for Ppu {
         }
         w.u8(self.line);
         w.u16(self.dot);
+        w.u8(self.ev.to_u8());
         w.u16(self.next_event);
+        w.bool(self.first_line);
         w.u8(self.phase.to_u8());
+        w.u8(self.stat_mode);
         w.bool(self.lyc_match);
+        w.bool(self.lyc_flag);
+        w.u8(self.locks);
         w.bool(self.vblank_mode2);
         w.bool(self.stat_line);
         w.u8(self.irq_pending);
         w.bool(self.win_y_hit);
         w.u8(self.win_line);
         w.bool(self.win_drawn);
+        w.u16(self.first_pixel_dot);
         w.u8(self.drawn_x);
         w.u8(self.obj_count);
         w.bytes(&self.objs);
@@ -544,15 +720,21 @@ impl Snapshot for Ppu {
         p.wx = r.u8()?;
         p.line = r.u8()?;
         p.dot = r.u16()?;
+        p.ev = Ev::from_u8(r.u8()?).ok_or(StateError::Corrupt("ppu event"))?;
         p.next_event = r.u16()?;
+        p.first_line = r.bool()?;
         p.phase = Phase::from_u8(r.u8()?).ok_or(StateError::Corrupt("ppu phase"))?;
+        p.stat_mode = r.u8()?;
         p.lyc_match = r.bool()?;
+        p.lyc_flag = r.bool()?;
+        p.locks = r.u8()?;
         p.vblank_mode2 = r.bool()?;
         p.stat_line = r.bool()?;
         p.irq_pending = r.u8()? & 0x1F;
         p.win_y_hit = r.bool()?;
         p.win_line = r.u8()?;
         p.win_drawn = r.bool()?;
+        p.first_pixel_dot = r.u16()?;
         p.drawn_x = r.u8()?;
         p.obj_count = r.u8()?;
         r.bytes_into(&mut p.objs)?;
@@ -562,7 +744,10 @@ impl Snapshot for Ppu {
         if p.dot >= LINE_DOTS || p.next_event == 0 || p.next_event > LINE_DOTS {
             return Err(StateError::Corrupt("ppu dot"));
         }
-        if p.drawn_x as usize > crate::SCREEN_W
+        if p.stat_mode > 3 || p.locks & !LOCK_ALL != 0 {
+            return Err(StateError::Corrupt("ppu stat"));
+        }
+        if p.drawn_x as usize > SCREEN_W
             || p.obj_count as usize > MAX_LINE_OBJS
             || p.objs.iter().any(|&i| i >= 40)
         {

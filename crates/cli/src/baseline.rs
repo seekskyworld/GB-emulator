@@ -21,11 +21,16 @@ pub fn entries(v: &Value) -> Result<Vec<(String, bool)>, String> {
 
 /// 基线中通过、本次运行到了但失败的 ROM（按本次顺序）。本次没有运行的项（`--fast`、`--only`）不算回归；
 /// 基线里同一个 ROM 出现多次时，任意一次通过即视为通过。
+/// 本次结果中 `"scored": false` 的项（未纳入范围的 Mooneye ROM）不参与比较。
 pub fn regressions(baseline: &Value, current: &Value) -> Result<Vec<String>, String> {
     let base = entries(baseline)?;
     let cur = entries(current)?;
+    let items = current.get("results").and_then(Value::as_array).unwrap_or(&[]);
     Ok(cur
         .into_iter()
+        .zip(items)
+        .filter(|(_, item)| item.get("scored").and_then(Value::as_bool) != Some(false))
+        .map(|(c, _)| c)
         .filter(|(rom, pass)| !*pass && base.iter().any(|(b, bp)| b == rom && *bp))
         .map(|(rom, _)| rom)
         .collect())
@@ -56,9 +61,12 @@ pub fn merge(old: Option<&Value>, current: &Value) -> Result<Value, String> {
         }
     }
     let mut parts = Vec::new();
-    for g in crate::gates::GROUPS {
-        let in_group: Vec<&Value> =
-            items.iter().filter(|i| i.get("group").and_then(Value::as_str) == Some(g)).collect();
+    for g in crate::gates::GROUPS.iter().copied().chain([crate::gates::MOONEYE]) {
+        let in_group: Vec<&Value> = items
+            .iter()
+            .filter(|i| i.get("group").and_then(Value::as_str) == Some(g))
+            .filter(|i| i.get("scored").and_then(Value::as_bool) != Some(false))
+            .collect();
         if !in_group.is_empty() {
             let pass = in_group.iter().filter(|i| i.get("pass").and_then(Value::as_bool) == Some(true)).count();
             parts.push(format!("{g} {pass}/{}", in_group.len()));

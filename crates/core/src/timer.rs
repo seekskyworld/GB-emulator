@@ -24,7 +24,7 @@ const TAC_BIT: [u16; 4] = [1 << 9, 1 << 3, 1 << 5, 1 << 7];
 /// 低 8 位（DIV 内部相位）取实机测得的值：从 PC=0x0100 起第 14 个 M-cycle 的访问恰好在 DIV 加 1
 /// 之后读到 0xAC。按 D002（每个 M-cycle 先推进 4 T 再访问），第 k 个访问看到 `BOOT + 4k`，
 /// 所以 `BOOT = 0xAC00 - 14*4 = 0xABC8`。若 T30 全局改为"先访问再推进"，此值要改为 0xABCC。
-const BOOT_COUNTER: u16 = 0xABC8;
+pub const BOOT_COUNTER: u16 = 0xABC8;
 
 /// TIMA 溢出后的重载流水线。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

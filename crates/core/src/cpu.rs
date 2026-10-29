@@ -15,10 +15,17 @@
 //! 访问时点（mem_timing）：`INC/DEC (HL)` 读在第 2、写在第 3 个 M-cycle；CB 前缀 `BIT b,(HL)` 读在第 3 个；
 //! 其余 CB `(HL)` 读在第 3、写在第 4 个；`LD (nn),A` 写在第 4 个；`LD A,(nn)` 读在第 4 个。
 //!
-//! 中断（PLAN §3.3、Pan Docs Interrupts.md / halt.md）：每条指令结束后（即下一次 `step` 开始时）检查
-//! `IME && pending()`；分派共 5 M-cycle：2 个 idle、写 PCH、写 PCL、1 个 idle，PC=向量。
-//! 向量在写完 PCH 之后才决定：若那次写改动了 IE 使中断不再挂起，PC=0x0000（Mooneye ie_push）。
+//! 中断（PLAN §3.3、Pan Docs Interrupts.md / halt.md）：硬件在每条指令的最后一个 M-cycle 取下一条操作码，
+//! 取指之后才检查 `IME && pending()`。本模型里取指是 `step` 的第 1 个 M-cycle，所以检查放在取指之后：
+//! 外设在取指那个 M-cycle 里提出的中断（D002：先推进外设、再访问）也会在这条指令执行之前被响应。
+//! 要分派时丢弃取到的操作码、PC 回到它的地址，这次取指算作分派的第 1 个 M-cycle（Pan Docs 所说的 2 个等待周期之一），
+//! 随后 1 个 idle、写 PCH、写 PCL、1 个 idle，PC=向量，共 5 M-cycle。
+//! 向量在写完 PCH 之后才决定：若压栈写到了 IE（SP 指向 0xFFFF）并使中断不再挂起，则 PC=0x0000、IF 不清除。
 //! `EI` 延迟一条指令生效（紧跟 `DI` 则不生效），`DI` 立即生效，`RETI` 立即置 IME。
+//!
+//! HALT：停机期间每个 M-cycle 仍在 PC 处取指（PC 不前进），这个周期结束时若有挂起中断即唤醒——
+//! IME=1 时这次取指就是分派的第 1 个 M-cycle，IME=0 时取到的就是 HALT 之后的指令并立即执行；
+//! 因此 HALT 等待与用一串 NOP 等待中断的时序完全相同（Pan Docs halt.md）。
 
 use crate::alu::{self, Flags};
 use crate::decode::{self, AluOp, CbInstr, Instr, RotOp, Rp, Rp2, RpMem, R8};
@@ -107,21 +114,37 @@ impl Cpu {
             return;
         }
         if self.halted {
+            // 停机期间仍在 PC 处取指（PC 不前进）；外设由 bus 在这个 M-cycle 里照常推进。
+            let op = bus.read(self.pc);
             if bus.pending() == 0 {
-                // 外设由 bus 在这个 M-cycle 里照常推进。
-                bus.idle();
                 return;
             }
-            // 有挂起中断即唤醒，不额外耗时（Mooneye halt_ime0/1 timing：与一串 NOP 等待的时序相同）。
+            // 有挂起中断即唤醒，不额外耗时。
             self.halted = false;
-        }
-        if self.ime && bus.pending() != 0 {
-            self.dispatch(bus);
+            if self.ime {
+                // 这次取指是分派的第 1 个 M-cycle；返回地址是 HALT 之后的指令。
+                self.dispatch(bus);
+            } else {
+                // IME=0：这次取到的就是 HALT 之后的指令，照常执行。
+                self.pc = self.pc.wrapping_add(1);
+                self.execute(bus, op);
+            }
             return;
         }
         let enable_ime = self.ei_pending;
         self.ei_pending = false;
-        let op = self.fetch_opcode(bus);
+        let op = bus.read(self.pc);
+        // HALT bug：这次取指不递增 PC。
+        let next = if self.halt_bug { self.pc } else { self.pc.wrapping_add(1) };
+        self.halt_bug = false;
+        if self.ime && bus.pending() != 0 {
+            // 取指之后检查中断：丢弃取到的操作码，PC 回退 1。HALT bug 之后（`EI; HALT` 且已有挂起中断）
+            // 回退的结果是 HALT 自身的地址，返回后 HALT 再执行一次（Pan Docs halt.md）。
+            self.pc = next.wrapping_sub(1);
+            self.dispatch(bus);
+            return;
+        }
+        self.pc = next;
         self.execute(bus, op);
         if enable_ime && op != OP_DI {
             self.ime = true;
@@ -214,17 +237,6 @@ impl Cpu {
 
     // ---- 总线辅助：每次 read/write/idle = 1 M-cycle ----
 
-    /// 取操作码；HALT bug 触发后的那一次不递增 PC。
-    #[inline(always)]
-    fn fetch_opcode<B: CpuBus>(&mut self, bus: &mut B) -> u8 {
-        let op = bus.read(self.pc);
-        if self.halt_bug {
-            self.halt_bug = false;
-        } else {
-            self.pc = self.pc.wrapping_add(1);
-        }
-        op
-    }
     #[inline(always)]
     fn imm8<B: CpuBus>(&mut self, bus: &mut B) -> u8 {
         let v = bus.read(self.pc);
@@ -320,18 +332,12 @@ impl Cpu {
         self.set_flags(nf);
     }
 
-    /// 中断分派：5 M-cycle。
+    /// 中断分派的后 4 个 M-cycle（第 1 个是调用方已经完成的、被丢弃的取指）：
+    /// 1 个 idle、写 PCH、写 PCL、1 个 idle。调用前 PC 已是要压栈的返回地址。
     fn dispatch<B: CpuBus>(&mut self, bus: &mut B) {
         self.ime = false;
         // 分派取代了"EI 之后的那条指令"，EI 的延迟生效随之作废，避免处理程序第一条指令后 IME 被重新打开。
         self.ei_pending = false;
-        if self.halt_bug {
-            // `EI; HALT` 且 HALT 时已有挂起中断：硬件上那次不递增 PC 的取指已经发生，分派又把 PC 回退 1，
-            // 所以压栈的是 HALT 自身的地址，返回后 HALT 再执行一次（Pan Docs halt.md）。
-            self.halt_bug = false;
-            self.pc = self.pc.wrapping_sub(1);
-        }
-        bus.idle();
         bus.idle();
         let [hi, lo] = self.pc.to_be_bytes();
         self.sp = self.sp.wrapping_sub(1);
