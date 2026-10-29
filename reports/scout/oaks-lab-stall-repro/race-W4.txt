@@ -1,0 +1,41 @@
+k= 0 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 1 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 2 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 3 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 4 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 5 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 6 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 7 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 8 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k= 9 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k=10 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k=11 xy=(4,6) scr=6 maxvis=6 ovf=False t89=11 c102=00 girl=(1, 10) ok
+k=12 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=13 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=14 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=15 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=16 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=17 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=18 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=19 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=20 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=21 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=22 xy=(4,5) scr=6 maxvis=9 ovf=True t89=a0 c102=ff girl=(1, 10) STALL
+k=23 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=24 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=25 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=26 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=27 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=28 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=29 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=30 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=31 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=32 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=33 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=34 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=35 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=36 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=37 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=38 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+k=39 xy=(4,5) scr=6 maxvis=9 ovf=False t89=11 c102=04 girl=(1, 10) ok
+stall at k = [22] (1/40)

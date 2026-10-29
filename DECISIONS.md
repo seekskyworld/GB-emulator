@@ -35,3 +35,15 @@
 - **D031 peek 不受 PPU 访问封锁影响**（2026-10-30，W4）：w4/ppu 加入了硬件 VRAM/OAM 访问封锁（mode 2/3 读 OAM、mode 3 读 VRAM 返回 0xFF），使 lcdon_timing、lcdon_write_timing、intr_2_oam_ok_timing 通过。`Machine::peek` 按 §3.2 是无副作用的调试读，必须返回真实内容（pokemon-agent 的 `read_*`、gates 与工具都走它），因此新增 `Ppu::peek_vram/peek_oam`（不封锁）：`Bus::peek` 与 DMA 读源用它们，只有 `CpuBus::read/write` 走封锁路径。为免跨通道协调的等待，特批 ppu 在 w4/ppu 上对 sys 的 `bus.rs` 做这一处最小改动。
 - **D032 B1 结案：大木研究所卡死是游戏自身的竞态**（2026-10-30 02:40）：scout 从游戏反汇编一侧（`reports/scout/oaks-lab-stall.md`）、core 从模拟器一侧逐条追踪，两边独立得出同一结论。`_UpdateSprites` 恰好跨过 VBlank、瞬间有 11 个可见精灵时，`PrepareOAMData`（无上限检查）写穿 shadow OAM，污染 `wTileMap`，导致主角被隐藏、四向碰撞自锁。出事那一帧是音乐引擎开始新音符，VBlank 处理程序多跑了约 6000 T。模拟器侧核实：每帧恰好 70224 T、VBlank 落点稳定在 ±8 T 内、HALT→ISR 为 5 M-cycle、DMA 不额外耗 CPU 周期。v1.0-gates 与 W4 两个构建上都只有约 1/28 的单帧窗口，START→B 可恢复。按 R6 不做针对性修补，只在驾驶侧（scripted 与 driver prompt）加检测与恢复。
 - **D033 驾驶侧对 B1 的恢复**（play）：scripted 驾驶不在战斗或对话中、连续 8 次走动坐标都没变、而且四个方向都试过时，发送 `press_start, wait_30, press_b, wait_30`，日志记为 `recover_tilemap`。误触发在文本框中无害，每次约耗 70 帧。在 T62 构建加卡死存档上验证过可以恢复。战斗步骤先按 3 次 B 退回主菜单，再选 FIGHT/RUN，修复了 "is already out!" 死循环。drive_loop 在每一轮开始时就写入会话 ID（R4）。driver prompt 增加了恢复提示。都只改驾驶行为，核心代码不变（R6）。
+- **D034 更正 D023/D028：三个通道都读过 Mooneye 测试源码**（评审 T80 问题 1）。D023/D028 只记了 ppu，实际上：
+  - core：2147f44 的注释引用了 ie_push、halt_ime0/1 的说明；
+  - sys：8388811 中 `timer.rs` 的 `BOOT_COUNTER` 低 8 位，依据的是 boot_div 测试的说明，并非实机测量，原注释写成"实机测得"有误，已更正；
+  - ppu：639e968 引用了 stat_irq_blocking、vblank_stat_intr、stat_lyc_onoff、lcdon_timing、boot_hwio，`BOOT_DOT` 的出处也已补注。
+
+  这些注释后来按 R2 改为引用 Pan Docs（6331d72、96ac7a9），因此代码中已看不出出处。v1.0-gates 原样通过的 66 项中，有 9 项与这些参考直接对应。
+
+  隐藏集差距按两种口径报告：
+  - 原始：Δ = 100% − 66/94 = 29.8pp；
+  - 剔除这 9 项后：Δ = 100% − 57/85 = 32.9pp。
+
+  另外，存档指纹读取 ROM 头部标题，是 PLAN §3.8 规定的，不算 R2 意义上的"感知 ROM 标题"（core 并不依据标题改变行为）。

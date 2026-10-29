@@ -86,7 +86,8 @@ const LOCK_ALL: u8 = LOCK_OAM_R | LOCK_OAM_W | LOCK_VRAM_R | LOCK_VRAM_W;
 /// 开机（PC=0x0100）时 PPU 在第 153 行内的 dot 位置。
 ///
 /// Power_Up_Sequence.md 的 DMG 列给出 LY=0x00、STAT=0x85（mode 1、LYC=LY），即仍处于最后一个
-/// VBlank 行、LY 已读作 0。行内的具体位置文档未给出，这里取距第 0 行开始 56 dot。
+/// VBlank 行、LY 已读作 0。Pan Docs 没有给出行内的具体位置，这里取距第 0 行开始 56 dot，
+/// 依据是一份测试 ROM 文档中的开机时序说明（D034）。
 const BOOT_DOT: u16 = LINE_DOTS - 56;
 
 /// PPU 内部所处的阶段（决定 STAT 中断源与渲染）。STAT 读到的 mode 位单独记在 `stat_mode`。
