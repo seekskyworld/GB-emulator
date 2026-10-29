@@ -162,10 +162,9 @@ fn load_state_truncated_header() {
     assert_eq!(m.load_state(&h[..h.len() - 1]), Err(StateError::Truncated));
 }
 
-// ---- 以下需要 Ppu/Dma 的 Snapshot（ppu 通道）；合并后去掉 ignore，T52 另有整机往返测试 ----
+// ---- 整机存档往返（各模块的 Snapshot 都已实现；T52 另有基于 ROM 的往返测试）----
 
 #[test]
-#[ignore = "needs Snapshot for Ppu/Dma (ppu lane T40-T42)"]
 fn save_state_header_and_roundtrip() {
     let mut m = machine();
     for _ in 0..3 {
@@ -184,7 +183,6 @@ fn save_state_header_and_roundtrip() {
 }
 
 #[test]
-#[ignore = "needs Snapshot for Ppu/Dma (ppu lane T40-T42)"]
 fn load_state_failure_keeps_state() {
     let mut m = machine();
     m.run_frame();

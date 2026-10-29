@@ -313,9 +313,8 @@ fn bus_snapshot_roundtrip() {
     assert_eq!(c.mcycles(), 0);
 }
 
-/// OAM DMA 由 Bus 驱动：从源页逐字节搬到 OAM（需要 ppu 通道的 T42 `Dma` 实现；空壳不搬运）。
+/// OAM DMA 由 Bus 驱动：从源页逐字节搬到 OAM，源页 ≥ 0xE0 时读 WRAM 镜像。
 #[test]
-#[ignore = "needs ppu lane T42 Dma (stub never transfers)"]
 fn oam_dma_copies_from_wram_and_echo() {
     let mut b = bus();
     for i in 0..0xA0u16 {
