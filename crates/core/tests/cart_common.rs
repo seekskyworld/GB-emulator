@@ -30,8 +30,8 @@ fn rom_plus_ram_type_08() {
 
 #[test]
 fn unsupported_types_are_errors_not_panics() {
-    // MBC2、MBC5 在 T50b 才实现；其余为未知或不支持的类型。
-    for kind in [0x05u8, 0x06, 0x0B, 0x0D, 0x19, 0x1B, 0x1E, 0x20, 0x22, 0xFC, 0xFE, 0xFF] {
+    // MMM01、MBC6、MBC7、HuC 等以及未定义的类型。
+    for kind in [0x04u8, 0x07, 0x0B, 0x0C, 0x0D, 0x14, 0x18, 0x1F, 0x20, 0x22, 0xFC, 0xFD, 0xFE, 0xFF] {
         let r = cart::from_rom(synth_rom(4, kind, 0x00));
         assert_eq!(r.err(), Some(CartError::UnsupportedType(kind)), "type 0x{kind:02X}");
     }
@@ -59,4 +59,12 @@ fn short_rom_is_padded_with_ff() {
 fn machine_accepts_64k_mbc1() {
     // Blargg 合集是 64 KiB 的 MBC1，T02 的临时实现会拒绝它。
     assert!(gb_core::Machine::new(synth_rom(4, 0x01, 0x00)).is_ok());
+}
+
+#[test]
+fn every_supported_type_constructs() {
+    for kind in [0x00u8, 0x01, 0x02, 0x03, 0x05, 0x06, 0x08, 0x09, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E] {
+        let c = cart::from_rom(synth_rom(8, kind, 0x02));
+        assert!(c.is_ok(), "type 0x{kind:02X}: {:?}", c.err());
+    }
 }
