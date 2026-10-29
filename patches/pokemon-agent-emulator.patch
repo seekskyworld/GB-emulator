@@ -1,0 +1,29 @@
+pokemon-agent @ f8a03e4: route .gb/.gbc ROMs to gbemu.backend.GbEmuEmulator (PLAN §3.8, way 2).
+Apply from the pokemon-agent checkout root:  patch -p1 < pokemon-agent-emulator.patch
+Requires the gbemu package on the path and GBEMU_LIB=/abs/path/libgb_ffi.dylib.
+
+--- a/pokemon_agent/emulator.py
++++ b/pokemon_agent/emulator.py
+@@ -343,9 +343,20 @@
+ # Factory
+ # ---------------------------------------------------------------------------
+ 
++def _gbemu_emulator() -> Emulator:
++    """.gb/.gbc backend: gbemu.backend.GbEmuEmulator (gb-core via ctypes).
++
++    Imported lazily because gbemu.backend itself imports this module.  The
++    native library is taken from the GBEMU_LIB environment variable.
++    """
++    from gbemu.backend import GbEmuEmulator
++
++    return GbEmuEmulator()
++
++
+ _EXT_MAP = {
+-    ".gb": PyBoyEmulator,
+-    ".gbc": PyBoyEmulator,
++    ".gb": _gbemu_emulator,
++    ".gbc": _gbemu_emulator,
+     ".gba": PyGBAEmulator,
+ }
+ 
