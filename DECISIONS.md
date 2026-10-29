@@ -22,3 +22,4 @@
 - **D018 卡带细则**（platform T50）：新增 `CartError::UnsupportedRamSize`；ROM 不足 16 KiB 整数倍时补 0xFF（只有不足 0x150 字节才报错）；RAM 大小代码 0x01 按 2 KiB；只有类型含 RAM 才有 RAM；MBC3 RTC 寄存器只在 TIMER 类型（0x0F/0x10）存在。
 - **D019 基线只前移**：`--update-baseline` 只把新通过的项并入基线；存在任何 REGRESSION 时拒绝更新。合并时的 gates 输出写到 `/tmp`（`--out`），仓库内的 `reports/gates.*` 只在里程碑重写并提交。
 - **D020 bench（PPU 空壳时）**：pokered 22478 fps、cpu_instrs 17122 fps、acid2 21431 fps（release）；PPU 合入后在 T61 重测。
+- **D021 SST 例外与 CPU 细则**（core T12/T14）：SST 500/500 文件、50 万用例通过；两项部分检查——`76 HALT`：SST 期望 3 M-cycle，本实现按 Opcodes.json 为 1（之后 halted 期间每次 step 1 个 idle），只比较寄存器/RAM/取指；`10 STOP`：SST 期望 PC+1 与 3 M-cycle，本实现按 Pan Docs/gbz80(7)/Opcodes.json 为 2 字节、1 M-cycle（第二字节跳过不读）并调用 `bus.stop()`（不进入低功耗，等同 2 字节 NOP），不比较 PC 与周期数。`Cpu` 新增公开字段 `ei_pending`/`halt_bug`/`locked` 与 `af/bc/de/hl` 访问器（不改冻结签名）。中断分派会取消挂起的 EI；`EI; HALT` 且已有挂起中断时触发 HALT bug；向量在写完 PCH 后决定（ie_push：IE 被清则 PC=0x0000、不 ack）；HALT 唤醒不额外耗时。
