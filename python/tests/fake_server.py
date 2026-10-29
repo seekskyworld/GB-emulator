@@ -9,7 +9,8 @@ The fake emulator writes the pokered WRAM fields that pokemon-agent reads
 (map id, x/y, names) so the monitor sees movement.  Knobs (environment):
 ``FAKE_MONO=1`` (every screen one colour), ``FAKE_FROZEN=1`` (tick does not
 advance frame_count), ``FAKE_NAMES=1`` (names already set at boot), ``FAKE_STALL_AFTER=N`` (after N
-presses walking stops working until START is pressed — the oaks-lab-stall shape).
+presses walking stops working until START is pressed — the oaks-lab-stall shape),
+``FAKE_STUCK_AFTER=N`` (after N presses the position never changes again).
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ class FakeEmulator(Emulator):
         self.stall_after = int(os.environ.get("FAKE_STALL_AFTER", "0"))
         self.stalled = False
         self.stalls = 0
+        self.stuck_after = int(os.environ.get("FAKE_STUCK_AFTER", "0"))
 
     def load(self, rom_path: str) -> None:
         self.rom_path = rom_path
@@ -72,10 +74,11 @@ class FakeEmulator(Emulator):
                 self.stalls += 1
             if button == "start":
                 self.stalled = False
-            dx, dy = (0, 0) if self.stalled else {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}.get(button, (0, 0))
+            stuck = self.stalled or (self.stuck_after and self.presses > self.stuck_after)
+            dx, dy = (0, 0) if stuck else {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}.get(button, (0, 0))
             self.mem[MAP_X] = (self.mem[MAP_X] + dx) % 20
             self.mem[MAP_Y] = (self.mem[MAP_Y] + dy) % 20
-            if self.presses % 50 == 0:
+            if self.presses % 50 == 0 and not stuck:
                 self.mem[MAP_ID] = (self.mem[MAP_ID] + 1) % 0xF8
         self.tick(frames)
 

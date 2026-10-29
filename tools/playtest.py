@@ -38,6 +38,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# 本机设置了 http_proxy（127.0.0.1:7897）而没有 no_proxy：urllib/curl 默认会把 localhost 请求也交给代理，
+# 端口未监听时得到的是代理的 502（数秒后）而不是"连接被拒绝"。所有 localhost 请求一律绕过代理。
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 REPO = Path(__file__).resolve().parent.parent
 TOOLS = REPO / "tools"
 
@@ -46,6 +50,7 @@ MONO_LIMIT_S = 60.0           # 单色画面持续超过 60 秒 → 失败
 COORD_STALL_WARN_S = 600.0    # 10 分钟坐标无变化 → 告警
 ACTION_GAP_WARN_S = 120.0     # 连续 2 分钟没有 /action → 告警
 SCRIPTED_LIMIT_S = 180.0      # scripted 兜底累计超过 3 分钟 → 无效
+STALL_LIMIT_S = 120.0         # 疑似卡死：不在战斗/对话中、坐标不变超过 2 分钟，而 /action 仍在执行
 
 EXIT_PASS, EXIT_FAIL, EXIT_SETUP, EXIT_INVALID = 0, 1, 2, 3
 
@@ -65,7 +70,7 @@ def http(method: str, url: str, body: Optional[dict] = None, timeout: float = 10
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with _OPENER.open(req, timeout=timeout) as r:
             return r.status, r.read(), ""
     except urllib.error.HTTPError as e:
         try:
@@ -227,6 +232,36 @@ def action_gaps(samples: List[dict], limit: float = ACTION_GAP_WARN_S) -> List[T
     return out
 
 
+def stall_windows(samples: List[dict], limit: float = STALL_LIMIT_S) -> List[dict]:
+    """Suspected stalls: consecutive samples outside battle and dialog with an unchanged (map, x, y)
+    for more than ``limit`` seconds while the server-side /action count kept growing.
+
+    The hard checks of PLAN §4.4 only ask for *one* position change during the whole run, so a game
+    that locks up after 10 s still passes; this is the separate, louder signal for that case."""
+    out: List[dict] = []
+    run: List[dict] = []
+
+    def close() -> None:
+        if len(run) >= 2:
+            span = run[-1]["t"] - run[0]["t"]
+            a0, a1 = run[0].get("actions_total"), run[-1].get("actions_total")
+            if span > limit and a0 is not None and a1 is not None and a1 > a0:
+                k = position_key(run[0])
+                out.append({"start": run[0]["t"], "end": run[-1]["t"], "seconds": span, "actions": a1 - a0,
+                            "map_id": k[0], "map_name": run[0].get("map_name", ""), "x": k[1], "y": k[2]})
+
+    for s in samples:
+        k = position_key(s)
+        quiet = k is not None and s.get("state_ok") and not s.get("battle") and not s.get("dialog")
+        if quiet and run and position_key(run[-1]) == k:
+            run.append(s)
+            continue
+        close()
+        run = [s] if quiet else []
+    close()
+    return out
+
+
 def trajectory(samples: List[dict]) -> List[dict]:
     """Samples where (map, x, y) changed (first sample included)."""
     out = []
@@ -254,8 +289,10 @@ def read_driver_rounds(path: Path) -> List[dict]:
 
 
 def evaluate(samples: List[dict], stats: Optional[dict], driver: str,
-             rounds: Optional[List[dict]] = None, server_exit: Optional[int] = None) -> dict:
-    """Apply the hard checks and warnings of PLAN §4.4 item 4/5."""
+             rounds: Optional[List[dict]] = None, server_exit: Optional[int] = None,
+             stall_limit: float = STALL_LIMIT_S, fail_on_stall: bool = False) -> dict:
+    """Apply the hard checks and warnings of PLAN §4.4 item 4/5, plus the STALL warning
+    (a hard check only with ``fail_on_stall``)."""
     rounds = rounds or []
     hard: List[dict] = []
 
@@ -296,7 +333,18 @@ def evaluate(samples: List[dict], stats: Optional[dict], driver: str,
     check(f"no single-colour screen for more than {MONO_LIMIT_S:.0f}s", span <= MONO_LIMIT_S,
           f"longest {span:.0f}s" + (f" (t={a:.0f}..{b:.0f}s)" if a is not None and span > 0 else ""))
 
+    stalls = stall_windows(samples, stall_limit)
+    if fail_on_stall:
+        check(f"no suspected stall over {stall_limit:.0f}s (--fail-on-stall)", not stalls,
+              f"{len(stalls)} stall(s)" + (f", first t={stalls[0]['start']:.0f}..{stalls[0]['end']:.0f}s"
+                                           if stalls else ""))
+
     warnings: List[str] = []
+    for st in stalls:
+        warnings.append(
+            f"STALL suspected: map {st['map_id']} {st['map_name']} ({st['x']},{st['y']}) unchanged for "
+            f"{st['seconds']:.0f}s (t={st['start']:.0f}..{st['end']:.0f}s) outside battle/dialog while "
+            f"{st['actions']} /action ran")
     for s0, s1 in coordinate_stalls(samples):
         warnings.append(f"coordinates unchanged for {s1 - s0:.0f}s (t={s0:.0f}..{s1:.0f}s)")
     for s0, s1 in action_gaps(samples):
@@ -329,6 +377,8 @@ def evaluate(samples: List[dict], stats: Optional[dict], driver: str,
         "exit_code": code,
         "hard": hard,
         "warnings": warnings,
+        "stalls": stalls,
+        "stall_limit": stall_limit,
         "scripted_seconds": scripted_s,
         "agent_rounds": sum(1 for r in rounds if r.get("kind") == "agent"),
         "failed_rounds": len(failed),
@@ -388,8 +438,19 @@ def render_summary(meta: dict, result: dict, samples: List[dict], rounds: List[d
     lines.append(f"**Verdict: {result['verdict']}** (exit code {result['exit_code']})"
                  + (f" — {result['invalid_reason']}" if result.get("invalid_reason") else ""))
     lines.append("")
+    stalls = result.get("stalls") or []
+    if stalls:
+        total = sum(st["seconds"] for st in stalls)
+        lines.append(f"> **STALL WARNING: {len(stalls)} suspected stall(s), {total:.0f}s in total** — position "
+                     f"unchanged outside battle/dialog for more than {result.get('stall_limit', STALL_LIMIT_S):.0f}s "
+                     "while /action kept running. The §4.4 hard checks do not cover this; inspect the screenshots.")
+        lines.append(">")
+        for st in stalls:
+            lines.append(f"> - {_fmt_t(st['start'])}–{_fmt_t(st['end'])} ({st['seconds']:.0f}s): map {st['map_id']} "
+                         f"{st['map_name']} ({st['x']},{st['y']}), {st['actions']} /action")
+        lines.append("")
     lines.append("## Run")
-    for k in ("driver", "minutes", "port", "url", "rom", "rom_sha1", "gbemu_lib", "gbemu_lib_sha256",
+    for k in ("driver", "minutes", "port", "stall_seconds", "fail_on_stall", "url", "rom", "rom_sha1", "gbemu_lib", "gbemu_lib_sha256",
               "git_head", "data_dir", "started", "ended", "server_exit"):
         if k in meta:
             lines.append(f"- {k}: `{meta[k]}`")
@@ -565,6 +626,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--attach", default=None, metavar="URL",
                     help="debug: monitor an already running server instead of starting one")
     ap.add_argument("--ready-timeout", type=float, default=120.0)
+    ap.add_argument("--stall-seconds", type=float, default=STALL_LIMIT_S,
+                    help="STALL warning threshold: position unchanged outside battle/dialog for longer than "
+                         "this while /action keeps running (default 120)")
+    ap.add_argument("--fail-on-stall", action="store_true",
+                    help="count a suspected stall as a failure (exit 1); off by default (PLAN §4.4 checks only)")
     args = ap.parse_args(argv)
 
     run_id = args.run_id or _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -574,6 +640,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     data_dir.mkdir(parents=True, exist_ok=True)
     url = (args.attach or f"http://localhost:{args.port}").rstrip("/")
     meta: Dict[str, Any] = {"run_id": run_id, "driver": args.driver, "minutes": args.minutes, "port": args.port,
+                            "stall_seconds": args.stall_seconds, "fail_on_stall": args.fail_on_stall,
                             "url": url, "data_dir": str(data_dir), "git_head": git_head(),
                             "started": _dt.datetime.now().isoformat(timespec="seconds")}
 
@@ -587,6 +654,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     server = None
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([str(REPO / "python")] + [p for p in [env.get("PYTHONPATH")] if p])
+    for k in ("NO_PROXY", "no_proxy"):  # server, scripted driver, drive_loop and the claude sessions' curl
+        env[k] = ",".join([p for p in [env.get(k)] if p] + ["localhost", "127.0.0.1", "::1"])
     if args.attach is None:
         rom = Path(args.rom).expanduser().resolve()
         if not rom.is_file():
@@ -671,7 +740,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     meta["ended"] = _dt.datetime.now().isoformat(timespec="seconds")
     meta["server_exit"] = server_exit
     rounds = read_driver_rounds(run_dir / "driver-rounds.jsonl")
-    result = evaluate(samples, final_stats, args.driver, rounds, server_exit)
+    result = evaluate(samples, final_stats, args.driver, rounds, server_exit,
+                      stall_limit=args.stall_seconds, fail_on_stall=args.fail_on_stall)
     make_contact_sheet(run_dir, samples)
     (run_dir / "summary.md").write_text(render_summary(meta, result, samples, rounds), encoding="utf-8")
     (run_dir / "summary.json").write_text(json.dumps({"meta": meta, "result": result, "final_stats": final_stats},
