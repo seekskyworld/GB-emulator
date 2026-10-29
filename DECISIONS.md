@@ -47,3 +47,4 @@
   - 剔除这 9 项后：Δ = 100% − 57/85 = 32.9pp。
 
   另外，存档指纹读取 ROM 头部标题，是 PLAN §3.8 规定的，不算 R2 意义上的"感知 ROM 标题"（core 并不依据标题改变行为）。
+- **D035 实玩工具的环境与 STALL 告警**（play，回应评审问题 3、4）：本机 shell 设了 `http_proxy=http://127.0.0.1:7897` 却没有 `no_proxy`，localhost 请求也会经过代理，导致测试竞态和延迟。修复方法：Python 访问 localhost 时绕过代理；drive_loop 设置 `NO_PROXY` 并给 curl 加 `--noproxy "*"`；playtest 给子进程也设置 `NO_PROXY`。scripted driver 改用 HTTP 长连接，避免临时端口耗尽；测试端口避开临时端口范围。新增 `STALL` 告警：不在战斗或对话中，坐标超过 120 秒不变，且期间 `/action` 仍在增长。告警出现在 summary 最前面并打印到 stdout；`--fail-on-stall` 时算作失败。默认判定仍按 §4.4，不变。`-k "not machine"` 连跑 10 次全部通过（每次 46 passed）。
