@@ -35,7 +35,7 @@
 - 卡住了（连续 3 次以上动作状态不变）：先 `press_b` 关掉菜单，再换方向，绕开 `#`。
 - 开场与过场（大木的介绍、起名）期间 `/state` 的 `dialog.active` 一直是 `false`，`a_until_dialog_end` 在这里没有效果；名字在起名之前就已是默认的 `NINTEN`/`SONY`，不代表已经起好名。推进这类文字时，一次 `/action` 发 6–10 个 `press_a`（例如 `["press_a","press_a","press_a","press_a","press_a","press_a"]`），用截图确认进度。
 - 开场：标题画面按 `press_start`；主菜单选 NEW GAME（`press_a`）；大木的介绍用成批的 `press_a` 推进。
-- 起名：先截图确认菜单（主角：NEW NAME / RED / ASH / JACK；劲敌：NEW NAME / BLUE / GARY / JOHN）已经出现、光标在 NEW NAME 上，再发 `["press_down", "press_a"]` 选第一个预设名。**不要盲按**：菜单出现前按 A 会直接进入字母键盘。万一进了字母键盘，`press_start` 跳到 END，再 `press_a` 确认。
+- 起名：先截图确认菜单（主角：NEW NAME / RED / ASH / JACK；劲敌：NEW NAME / BLUE / GARY / JOHN）已经出现、光标在 NEW NAME 上，再发 `["press_down", "press_a"]` 选第一个预设名。**不要盲按**：光标还在 NEW NAME 时按 A 会进入字母键盘。万一进了字母键盘，`press_start` 跳到 END，再 `press_a` 确认。
 - 战斗（初代）：水克火/地面/岩石；火克草/虫/冰；草克水/地面/岩石；电克水/飞行；地面克火/电/岩石；超能力在初代很强。能一击就用最强的克制招式；野生战斗不需要时可以逃跑（选 RUN）。
 - 主线里程碑：从大木博士处拿到初始宝可梦 → 送大木的包裹、拿图鉴 → 穿过常青森林到尼比市 → 灰色徽章（小刚，岩石系，用水/草）。
 
