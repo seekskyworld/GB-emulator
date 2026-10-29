@@ -16,3 +16,4 @@
 - **D012 Cargo profile**：`[profile.dev] opt-level=1`、`[profile.test] opt-level=3`，使 SingleStepTests（约 50 万用例）与整机单测在 `cargo test` 下足够快。
 - **D013 PPU/DMA 空壳不 panic**：T02 的 `Ppu::tick_mcycle` 返回 0、寄存器为可读写存储、`Dma::tick_mcycle` 返回 `None`，避免 core/sys 在 ppu 合入前跑 ROM 时 panic（Blargg 控制台在 LY 不变时会超时后继续，见 `refs/blargg/cpu_instrs/source/common/console.s`）。
 - **D014 路径环境变量**：测试 ROM 与资料从 `$GBEMU_REFS`（默认 `<repo>/refs`）读取；宝可梦 ROM 从 `$GBEMU_POKERED`（默认 `<repo>/roms/pokered.gb`）读取。lane worktree 中没有 `refs/`、`roms/`，必须设置这两个变量为主仓库的绝对路径。
+- **D015 SST 格式（实测，修正 PLAN §4.2）**：`cycles` 中内部周期编码为 `[地址, 数据, "---"]`（不是 `null`）；读为 `"r-m"`、写为 `"-wm"`。`initial` 含 `ie` 字段（0/1，不是 IE 寄存器），`final` 对 EI 含 `ei`。PC 指向操作码本身，取指是第 1 个 M-cycle。
