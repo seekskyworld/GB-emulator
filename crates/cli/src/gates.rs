@@ -106,6 +106,7 @@ pub fn select(only: Option<&[String]>, fast: bool) -> Vec<Entry> {
 /// 单个 ROM 的运行结果。
 #[derive(Debug, Clone)]
 pub struct RomResult {
+    pub kind: Kind,
     pub group: String,
     pub name: String,
     pub rom: String,
@@ -136,6 +137,7 @@ struct Progress {
 
 fn finish(e: &Entry, p: Progress, end: RunEnd, verdict: Verdict, diff: Option<DiffStats>) -> RomResult {
     RomResult {
+        kind: e.kind,
         group: e.group.to_string(),
         name: e.name(),
         rom: e.rom.clone(),
@@ -364,6 +366,21 @@ pub struct Options {
     pub threads: usize,
     pub refs: PathBuf,
     pub out: PathBuf,
+    /// `--baseline <file>`：棘轮基线（gates.json 格式）。
+    pub baseline: Option<PathBuf>,
+    /// `--update-baseline`：无 REGRESSION 时把本次结果合并进基线。
+    pub update_baseline: bool,
+}
+
+/// 退出码：有 REGRESSION 为 2，否则有失败为 1，全部通过为 0。
+pub fn exit_code(results: &[RomResult], regressions: &[String], other_errors: bool) -> u8 {
+    if !regressions.is_empty() {
+        2
+    } else if other_errors || results.iter().any(|r| !r.pass) {
+        1
+    } else {
+        0
+    }
 }
 
 /// stdout 行数上限。
@@ -386,10 +403,3 @@ pub fn stdout_lines(results: &[RomResult], extra_first: &[String]) -> Vec<String
     lines
 }
 
-/// 写出报告：`<out>/gates.json`。
-pub fn write_reports(results: &[RomResult], opts: &Options) -> std::io::Result<()> {
-    std::fs::create_dir_all(&opts.out)?;
-    let json = results_json(results, opts.fast, opts.only.as_deref());
-    std::fs::write(opts.out.join("gates.json"), json.to_pretty())?;
-    Ok(())
-}

@@ -7,13 +7,14 @@ use std::time::Instant;
 
 use gb_cli::emu::{catch, FrameStepper, PcTrace};
 use gb_cli::gates::{self, Options};
+use gb_cli::{baseline, report};
 use gb_cli::png;
 use gb_core::{Machine, Regs, SCREEN_H, SCREEN_W};
 
 const USAGE: &str = "\
 usage:
   gb-cli run <rom> [--frames N] [--png out.png] [--serial] [--until-ld-b-b] [--trace]
-  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR]
+  gb-cli gates [--fast] [--only G1,G4] [--threads N] [--out DIR] [--baseline FILE] [--update-baseline]
   gb-cli bench <rom> [--frames N]
 env: GBEMU_REFS (default ./refs), GB_TRACE=1 (same as --trace)";
 
@@ -220,7 +221,7 @@ fn refs_dir() -> PathBuf {
 }
 
 fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
-    let a = Args::parse(raw, &["only", "threads", "out"], &["fast"])?;
+    let a = Args::parse(raw, &["only", "threads", "out", "baseline"], &["fast", "update-baseline"])?;
     if !a.positional.is_empty() {
         return Err(format!("unexpected argument `{}`", a.positional[0]));
     }
@@ -242,23 +243,90 @@ fn cmd_gates(raw: &[String]) -> Result<ExitCode, String> {
         Some(o) => PathBuf::from(o),
         None => std::env::current_dir().unwrap_or_default().join("reports"),
     };
-    let opts = Options { fast: a.has("fast"), only, threads, refs: refs_dir(), out };
+    let opts = Options {
+        fast: a.has("fast"),
+        only,
+        threads,
+        refs: refs_dir(),
+        out,
+        baseline: a.value("baseline").map(PathBuf::from),
+        update_baseline: a.has("update-baseline"),
+    };
 
     if !opts.refs.join("blargg").is_dir() {
         println!("ERROR refs missing, run tools/fetch_refs.sh");
         return Ok(ExitCode::FAILURE);
     }
+    let baseline_path = opts.baseline.clone().unwrap_or_else(|| opts.out.join("baseline.json"));
+    // 基线：--baseline 指定时必须可读（--update-baseline 且文件尚不存在时除外，此时新建）。
+    let mut errors: Vec<String> = Vec::new();
+    let old_baseline = if opts.baseline.is_some() || (opts.update_baseline && baseline_path.exists()) {
+        if !baseline_path.exists() && opts.update_baseline {
+            None
+        } else {
+            match baseline::read(&baseline_path) {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    errors.push(format!("ERROR baseline {e}"));
+                    None
+                }
+            }
+        }
+    } else {
+        None
+    };
+
     let entries = gates::select(opts.only.as_deref(), opts.fast);
     let results = gates::run_all(&entries, &opts.refs, opts.threads);
-    let mut extra = Vec::new();
-    if let Err(e) = gates::write_reports(&results, &opts) {
-        extra.push(format!("ERROR cannot write reports to {}: {e}", opts.out.display()));
+    let current = gates::results_json(&results, opts.fast, opts.only.as_deref());
+
+    // 有旧基线就比较（包括只给 --update-baseline、默认基线已存在的情况），保证基线只升不降。
+    let regressions = match &old_baseline {
+        Some(b) => match baseline::regressions(b, &current) {
+            Ok(r) => r,
+            Err(e) => {
+                errors.push(format!("ERROR baseline {}: {e}", baseline_path.display()));
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    };
+    let reference = std::fs::read(opts.refs.join("acid2/reference-dmg.gray")).ok();
+    if let Err(e) = report::write_reports(&results, &opts, reference.as_deref(), &regressions) {
+        errors.push(format!("ERROR cannot write reports to {}: {e}", opts.out.display()));
     }
-    for line in gates::stdout_lines(&results, &extra) {
+    let mut notes = Vec::new();
+    if opts.update_baseline {
+        if !regressions.is_empty() {
+            notes.push(format!("baseline not updated: {} REGRESSION", regressions.len()));
+        } else if errors.iter().any(|e| e.starts_with("ERROR baseline")) {
+            notes.push("baseline not updated: baseline unreadable".to_string());
+        } else {
+            let written = baseline::merge(old_baseline.as_ref(), &current).and_then(|v| {
+                if let Some(dir) = baseline_path.parent() {
+                    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+                }
+                std::fs::write(&baseline_path, v.to_pretty()).map_err(|e| e.to_string())?;
+                Ok(v)
+            });
+            match written {
+                Ok(v) => notes.push(format!(
+                    "baseline updated: {} ({})",
+                    baseline_path.display(),
+                    v.get("summary").and_then(|s| s.as_str()).unwrap_or("")
+                )),
+                Err(e) => errors.push(format!("ERROR cannot write baseline {}: {e}", baseline_path.display())),
+            }
+        }
+    }
+
+    let mut first: Vec<String> = regressions.iter().map(|r| format!("REGRESSION {r}")).collect();
+    first.extend(errors.iter().cloned());
+    first.extend(notes);
+    for line in gates::stdout_lines(&results, &first) {
         println!("{line}");
     }
-    let all_pass = results.iter().all(|r| r.pass) && extra.is_empty();
-    Ok(if all_pass { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+    Ok(ExitCode::from(gates::exit_code(&results, &regressions, !errors.is_empty())))
 }
 
 fn cmd_bench(raw: &[String]) -> Result<ExitCode, String> {
