@@ -5,8 +5,24 @@
 use crate::bus::Bus;
 use crate::cart::{self, CartError};
 use crate::cpu::Cpu;
-use crate::state::StateError;
+use crate::state::{Snapshot, StateError, StateReader, StateWriter};
 use crate::{Frame, FRAME_T};
+
+/// 存档文件头的 magic（PLAN §3.8）。
+pub const STATE_MAGIC: &[u8; 7] = b"GBEMUST";
+/// 存档格式版本；任何模块的 `Snapshot` 布局变化都要加 1。
+pub const STATE_VERSION: u16 = 1;
+/// ROM 指纹长度：头部校验和 0x14D（1）+ 全局校验和 0x14E–0x14F（2）+ 标题 0x134–0x143（16）。
+pub const FINGERPRINT_LEN: usize = 19;
+
+/// 从 ROM 头部取指纹（调用方保证 `rom.len() >= 0x150`）。
+fn rom_fingerprint(rom: &[u8]) -> [u8; FINGERPRINT_LEN] {
+    let mut fp = [0u8; FINGERPRINT_LEN];
+    fp[0] = rom[0x14D];
+    fp[1..3].copy_from_slice(&rom[0x14E..0x150]);
+    fp[3..].copy_from_slice(&rom[0x134..0x144]);
+    fp
+}
 
 /// 寄存器快照（`Machine::regs`）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -30,6 +46,8 @@ pub struct Machine {
     bus: Bus,
     /// `run_frame` 的 T-cycle 余量：每帧加 70224，执行到不大于 0；超出部分累计到下一帧。
     frame_budget: i64,
+    /// ROM 指纹（见 `rom_fingerprint`），存档时写入、读档时比对。
+    fingerprint: [u8; FINGERPRINT_LEN],
 }
 
 impl Machine {
@@ -39,11 +57,12 @@ impl Machine {
             return Err(CartError::BadSize(rom.len()));
         }
         let header_checksum = rom[0x14D];
+        let fingerprint = rom_fingerprint(&rom);
         let cart = cart::from_rom(rom)?;
         let mut cpu = Cpu::new();
         // Power_Up_Sequence：头部校验和为 0 时 H、C 清零，否则置位（Z=1、N=0 不变）。
         cpu.f = if header_checksum == 0 { 0x80 } else { 0xB0 };
-        Ok(Self { cpu, bus: Bus::new(cart), frame_budget: 0 })
+        Ok(Self { cpu, bus: Bus::new(cart), frame_budget: 0, fingerprint })
     }
 
     /// 执行 1 条指令或 1 次中断分派，返回消耗的 T 数；HALT/STOP/锁死时也至少返回 4，绝不返回 0。
@@ -109,13 +128,89 @@ impl Machine {
         self.bus.mcycles() * 4
     }
 
+    /// 本机 ROM 的指纹（存档头中的 19 字节）。
+    pub fn rom_fingerprint(&self) -> [u8; FINGERPRINT_LEN] {
+        self.fingerprint
+    }
+
     /// 存档：magic `GBEMUST`、版本 u16、ROM 指纹，然后依次是各模块的 `Snapshot`（PLAN §3.8）。
     pub fn save_state(&self) -> Vec<u8> {
-        todo!("sys: Machine::save_state (T13)")
+        let mut w = StateWriter::new();
+        w.bytes(STATE_MAGIC);
+        w.u16(STATE_VERSION);
+        w.bytes(&self.fingerprint);
+        self.save_body(&mut w);
+        w.into_inner()
     }
 
     /// 读档；ROM 指纹不匹配时返回 `StateError::RomMismatch`，失败时机器状态保持不变。
-    pub fn load_state(&mut self, _data: &[u8]) -> Result<(), StateError> {
-        todo!("sys: Machine::load_state (T13)")
+    ///
+    /// 先校验文件头（不改动任何状态）；之后各模块的 `load` 可能只读到一半就失败，
+    /// 因此先把当前状态存一份，失败时从这份备份恢复。
+    pub fn load_state(&mut self, data: &[u8]) -> Result<(), StateError> {
+        let mut r = StateReader::new(data);
+        check_header(&mut r, &self.fingerprint)?;
+        let backup = self.save_state();
+        let result = match self.load_body(&mut r) {
+            Ok(()) if r.remaining() != 0 => Err(StateError::Corrupt("trailing data after state")),
+            other => other,
+        };
+        if result.is_err() {
+            let mut br = StateReader::new(&backup);
+            check_header(&mut br, &self.fingerprint).expect("backup state header");
+            self.load_body(&mut br).expect("restoring backup state must succeed");
+        }
+        result
     }
+
+    /// 各模块依次写出（顺序与 `load_body` 一致）。
+    fn save_body(&self, w: &mut StateWriter) {
+        let b = &self.bus;
+        self.cpu.save(w);
+        b.save(w);
+        b.ints.save(w);
+        b.timer.save(w);
+        b.serial.save(w);
+        b.joypad.save(w);
+        b.ppu.save(w);
+        b.dma.save(w);
+        b.cart.save(w);
+        w.tag(b"MACH");
+        w.i64(self.frame_budget);
+    }
+
+    fn load_body(&mut self, r: &mut StateReader) -> Result<(), StateError> {
+        let b = &mut self.bus;
+        self.cpu.load(r)?;
+        b.load(r)?;
+        b.ints.load(r)?;
+        b.timer.load(r)?;
+        b.serial.load(r)?;
+        b.joypad.load(r)?;
+        b.ppu.load(r)?;
+        b.dma.load(r)?;
+        b.cart.load(r)?;
+        r.tag(b"MACH")?;
+        self.frame_budget = r.i64()?;
+        Ok(())
+    }
+}
+
+/// 校验存档文件头：magic、版本、ROM 指纹。不足 magic 长度或 magic 不符都视为 `BadMagic`。
+fn check_header(r: &mut StateReader, fingerprint: &[u8; FINGERPRINT_LEN]) -> Result<(), StateError> {
+    let mut magic = [0u8; 7];
+    r.bytes_into(&mut magic).map_err(|_| StateError::BadMagic)?;
+    if &magic != STATE_MAGIC {
+        return Err(StateError::BadMagic);
+    }
+    let version = r.u16()?;
+    if version != STATE_VERSION {
+        return Err(StateError::BadVersion(version));
+    }
+    let mut fp = [0u8; FINGERPRINT_LEN];
+    r.bytes_into(&mut fp)?;
+    if &fp != fingerprint {
+        return Err(StateError::RomMismatch);
+    }
+    Ok(())
 }
