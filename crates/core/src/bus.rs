@@ -217,7 +217,12 @@ impl Bus {
                 self.apu[NR52] = (v & 0x80) | status;
             }
             0xFF10..=0xFF3F => self.apu[(addr - 0xFF10) as usize] = v,
-            0xFF40..=0xFF45 | 0xFF47..=0xFF4B => self.ppu.write_reg(addr, v),
+            0xFF40..=0xFF45 | 0xFF47..=0xFF4B => {
+                self.ppu.write_reg(addr, v);
+                // 写 STAT/LYC/LCDC 可能立刻让 STAT 中断线上升：在写入的同一个 M-cycle 进 IF。
+                let req = self.ppu.take_irq();
+                self.ints.request(req);
+            }
             0xFF46 => self.dma.write_reg(v),
             _ => {}
         }
