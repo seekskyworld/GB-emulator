@@ -210,7 +210,6 @@ fn lengths_match() {
 
 /// 标志位约束：`-` 不变，`0`/`1` 被强制；F 的低 4 位恒为 0。
 #[test]
-#[ignore = "T11: enabled once the ALU is complete"]
 fn flags_match() {
     let mut bad = Vec::new();
     for e in legal_entries() {
