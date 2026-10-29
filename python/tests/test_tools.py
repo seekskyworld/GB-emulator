@@ -191,6 +191,10 @@ def test_scripted_names_detection():
     assert scripted.names_set(st)
     st["player"]["name"] = "???????????"
     assert not scripted.names_set(st)
+    st["player"]["name"], st["player"]["rival_name"] = "NINTEN", "SONY"  # defaults before naming
+    assert not scripted.names_set(st)
+    st["player"]["name"] = "RED"
+    assert not scripted.names_set(st)
     assert not scripted.names_set(None)
     assert scripted.position(good_state(x=4, y=5)) == (38, 4, 5)
 
