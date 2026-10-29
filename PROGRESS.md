@@ -53,7 +53,7 @@
 
 ## Blockers
 
-- **B1 宝可梦在大木研究所卡死（调查中，2026-10-30 02:10 起）**：play 的一次脚本驾驶日志可稳定复现——"Hey! Don't go away" 之后主角被模拟摇杆拉回 (4,5)，随后主角精灵 image index=0xFF、所有输入失效（游戏仍在运行）。v1.0-gates 的 30 分钟正式实玩没有触发。core（模拟器侧）与 scout（游戏反汇编侧）并行调查，复现材料在 `/tmp/gbemu-integrator/stall/`。
+- **B1（已结案，D032：游戏自身竞态，驾驶侧加恢复）宝可梦在大木研究所卡死**：play 的一次脚本驾驶日志可稳定复现——"Hey! Don't go away" 之后主角被模拟摇杆拉回 (4,5)，随后主角精灵 image index=0xFF、所有输入失效（游戏仍在运行）。v1.0-gates 的 30 分钟正式实玩没有触发。core（模拟器侧）与 scout（游戏反汇编侧）并行调查，复现材料在 `/tmp/gbemu-integrator/stall/`。
 
 ## 下一步
 
