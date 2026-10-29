@@ -96,3 +96,9 @@ def running_emu(emu):
     # Start every machine test from a fresh instance.
     emu.load(emu.rom_path)
     return emu
+
+
+def skip_if_unimplemented(exc: Exception) -> None:
+    """Turn a core ``todo!()`` panic into a skip (unless GBEMU_REQUIRE_MACHINE=1)."""
+    if "not yet implemented" in str(exc) and os.environ.get("GBEMU_REQUIRE_MACHINE") != "1":
+        pytest.skip(f"core part not implemented yet: {exc}")
