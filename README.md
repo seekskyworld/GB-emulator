@@ -60,5 +60,5 @@ python/gbemu  ctypes 绑定、pokemon-agent 后端、启动器
 patches/      pokemon-agent 接入补丁
 tools/        资料下载、实玩监控 playtest.py、驾驶循环 drive_loop.sh、回归驾驶 scripted_driver.py、会话导出
 reports/      gates 结果、基线、截图、实玩报告
-sessions/     全部 Claude Code 会话记录（已打码）与 INDEX.md
+sessions/     Claude Code 会话记录（实施会话与子代理、T62 驾驶会话；已打码）与 INDEX.md
 ```

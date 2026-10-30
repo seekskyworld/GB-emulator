@@ -1,0 +1,22 @@
+[drive_loop] url=http://localhost:8780 seconds=1800 model=global.anthropic.claude-sonnet-5-5 effort=high timeout=180s
+[drive_loop] round-001 session=e1189c45-d336-42a6-a114-ccc37efb3c7e rc=0 75s actions=7 status=ok
+[drive_loop] round-002 session=737cfd03-696f-43cb-9c8e-7de88698c1c5 rc=0 96s actions=8 status=ok
+[drive_loop] round-003 session=a1be191b-eacd-40a7-a827-071a0a26cd1e rc=0 107s actions=10 status=ok
+[drive_loop] round-004 session=4802b13c-3d68-4445-a182-c3b5a413b6e2 rc=0 103s actions=9 status=ok
+[drive_loop] round-005 session=02f1ba9d-563f-4f70-babb-8e9fa53542d1 rc=0 109s actions=8 status=ok
+[drive_loop] round-006 session=eac5c59a-0ea2-4bbb-a7ae-6e700bdfe02c rc=0 75s actions=8 status=ok
+[drive_loop] round-007 session=772dd8e9-ba93-4bc5-887d-cfcba48de46d rc=0 116s actions=9 status=ok
+[drive_loop] round-008 session=f7eda9a6-c671-4e6a-becc-1c60d661b650 rc=0 132s actions=8 status=ok
+[drive_loop] round-009 session=0401cfdb-2a92-456a-b1b9-c4f30dd8c2d9 rc=0 94s actions=10 status=ok
+[drive_loop] round-010 session=224d173d-62f9-42a4-9c3f-3751edcc256a rc=0 63s actions=7 status=ok
+[drive_loop] round-011 session=d70af584-53df-4de1-bfdf-d72f8f57836b rc=0 66s actions=5 status=ok
+[drive_loop] round-012 session=94ad92cd-7282-4100-9485-169b716f7b68 rc=0 93s actions=6 status=ok
+[drive_loop] round-013 session=4b34fd68-39e0-4b53-8d7e-c71f3123fac0 rc=0 88s actions=4 status=ok
+[drive_loop] round-014 session=e7ede8ea-b71a-42cf-be91-456bafc3d1cb rc=0 76s actions=6 status=ok
+[drive_loop] round-015 session=e457a38d-016c-4dff-92f7-11d15abdf2c1 rc=0 101s actions=5 status=ok
+[drive_loop] round-016 session=7978a7af-43f5-4a2c-8ae7-542411f3ce19 rc=0 61s actions=6 status=ok
+[drive_loop] round-017 session=168fad97-4ea3-465e-9271-d22f2ace949e rc=0 74s actions=9 status=ok
+[drive_loop] round-018 session=8df6b776-4472-4886-8be5-c1715d5a9166 rc=0 95s actions=7 status=ok
+[drive_loop] round-019 session=72c93a8e-65b3-4f6e-a67a-1b32a4f6c93c rc=0 158s actions=7 status=ok
+[drive_loop] round 20 interrupted at end of run (session 210a9832-1e0c-411e-bb79-4f055730eee4)
+[drive_loop] stopped

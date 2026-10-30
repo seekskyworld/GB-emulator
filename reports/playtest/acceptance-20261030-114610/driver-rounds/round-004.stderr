@@ -1,0 +1,1 @@
+Ignoring 34 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects["/Users/skyseek/Desktop/project/open/research-platform/GB-emulator"].hasTrustDialogAccepted: true in /Users/skyseek/.claude.json.

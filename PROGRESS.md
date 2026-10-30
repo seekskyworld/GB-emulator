@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 里程碑：M1–M5 完成，**G1–G5 完成**（tag `v1.0-gates` = 7558ce3，2026-10-30 02:23）；M6 Mooneye 94/94（tag `w4-mooneye-94`）；M7 交付进行中
+- 里程碑：M1–M7 全部完成。**G1–G5 完成**（tag `v1.0-gates` = 7558ce3）；M6 Mooneye 94/94（tag `w4-mooneye-94`）；M7 交付（tag `delivery`）
 - gates 汇总（`reports/gates.json`，main）：`G1 12/12 G2 1/1 G3 4/4 G4 1/1 MOONEYE 94/94 REPLAY ok`
 - G5 证据：`reports/playtest/T62-rc-gates-7558ce3/`（30 分钟、Sonnet 5.5 驾驶 22/22 轮、0 次 scripted 兜底；真新镇 → 常青市宝可梦中心）
 - 隐藏集证据（§4.5）：`reports/mooneye-raw-rc-gates/`（v1.0-gates 原样：MOONEYE 66/94，raw 67/115）
@@ -49,7 +49,7 @@
 | T71 | Mooneye 迭代（加分） | T62,T70 | scout ×N + core/sys/ppu | W4 | done |
 | T80 | 评审（一次） | T62 | reviewer | W4 | done |
 | T90 | 合规自查 | T62 | reviewer | W4 | done |
-| T91 | 交付 | T80,T90 | integrator | W4 | doing |
+| T91 | 交付 | T80,T90 | integrator | W4 | done |
 
 ## Blockers
 
@@ -57,6 +57,4 @@
 
 ## 下一步
 
-T91 交付：
-- 评审（`reports/review.md`）中的必修项已处理：问题 1 → D034；问题 2 → T62 addendum；问题 9 → 本次更新。问题 3（pytest 竞态）与问题 4（STALL 告警）由 play 处理。
-- 然后完成 REPORT，在最终提交上跑一次全量 gates，正式导出 sessions。
+全部任务已完成，等待用户验收。结论与证据见 REPORT.md。

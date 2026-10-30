@@ -48,3 +48,4 @@
 
   另外，存档指纹读取 ROM 头部标题，是 PLAN §3.8 规定的，不算 R2 意义上的"感知 ROM 标题"（core 并不依据标题改变行为）。
 - **D035 实玩工具的环境与 STALL 告警**（play，回应评审问题 3、4）：本机 shell 设了 `http_proxy=http://127.0.0.1:7897` 却没有 `no_proxy`，localhost 请求也会经过代理，导致测试竞态和延迟。修复方法：Python 访问 localhost 时绕过代理；drive_loop 设置 `NO_PROXY` 并给 curl 加 `--noproxy "*"`；playtest 给子进程也设置 `NO_PROXY`。scripted driver 改用 HTTP 长连接，避免临时端口耗尽；测试端口避开临时端口范围。新增 `STALL` 告警：不在战斗或对话中，坐标超过 120 秒不变，且期间 `/action` 仍在增长。告警出现在 summary 最前面并打印到 stdout；`--fail-on-stall` 时算作失败。默认判定仍按 §4.4，不变。`-k "not machine"` 连跑 10 次全部通过（每次 46 passed）。
+- **D036 推送到 GitHub（推翻 D007）**：用户 2026-10-30 要求把全部提交推送到 https://github.com/seekskyworld/GB-emulator（PUBLIC）。推送前扫描了全部 810 个已跟踪文件，Anthropic 令牌及其前缀、网关地址、GitHub 令牌、`sk-` 密钥、Bearer 头的命中都是 0。推送范围：main、全部 lane/w4/integ 分支和全部 tag，保留完整历史。ROM（`/roms`、`/ROM`）与参考资料（`/refs`）不入库，不推送。

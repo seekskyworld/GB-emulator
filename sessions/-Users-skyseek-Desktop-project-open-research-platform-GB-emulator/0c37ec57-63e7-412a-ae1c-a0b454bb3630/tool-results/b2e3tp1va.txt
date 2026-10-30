@@ -1,0 +1,298 @@
+# GB（DMG）模拟器从零实现：计划与任务（交接唯一文档）
+
+> 面向接手实施的 Claude。**本文件是唯一的交接物**：第 1–7 章是计划，第 8 章是可逐项验收的任务清单，第 9 章是参考资料要点与经验来源，不依赖任何聊天记录或其他文件。
+> 题目来源：同目录下的 `GB 模拟器高速编程研究 · 技术文档与资料.rtf`（以下简称"题面"）。所有外部事实与下载地址已于 2026-10-29 实测核对。
+> 冲突裁决顺序：题面红线 > §1 > 第 2–7 章 > 第 8 章 > 你自己的判断。**例外**：本文的技术陈述（第 2–3 章）若与 Pan Docs 原文或测试 ROM 的实际结果冲突，以后两者为准，并记入 `DECISIONS.md`；不要为了"符合计划"去对抗测试结果。
+> 第 9 章汇总了题面参考资料（3 篇 Anthropic 文章、4 篇评测论文）的要点；本文的工作流规则大多由此而来，方括号中的 [A1]–[P4]、[M1] 标注出处。
+> **v2（2026-10-30，速度优先重构）**：非 G1–G5 必需的工作全部移到 G5 之后的收尾阶段（W4）；不做计时与耗时记录；写代码的通道由 4 个减为 3 个（取消 periph，并入 core）；M0 压缩（T02 只冻结跨通道接口、模型验证简化、gates 分 T05a/T05b 两步）；30 分钟实玩默认只跑一次；记账频率降为按里程碑。
+
+---
+
+## 0. 开工前 5 分钟必读（TL;DR）
+
+1. **红线**：从零写；不得阅读、复制、改写任何现成模拟器的源码（PyBoy、SameBoy、mGBA、Gambatte、BGB 等），**不安装 pyboy**。只看 `$REFS` 中的硬件文档、指令表、测试 ROM 说明与测试源码。完整保留 git 历史和全部 session 记录。
+2. **路径**：仓库 `REPO=/Users/skyseek/Desktop/project/open/research-platform/GB-emulator`；参考资料 `REFS=$REPO/refs`（由 §2.1 的脚本并行下载，约 1 分钟）。所有会话都从 `$REPO` 或其 lane worktree 启动（便于导出会话记录，见 §7）。
+3. **路线**：Rust 核心（无第三方依赖）→ C ABI → Python `ctypes` → pokemon-agent。
+4. **先建反馈回路**：`gates` 一条命令跑完全部门槛，输出不超过 30 行，失败行以 `ERROR` 开头；详细内容写日志。**任何合并都不得让已通过的项目变为失败**（棘轮，§4.1）。
+5. **接口和时序在 T02 一次定死**：每次总线访问或内部周期 = 1 个 M-cycle，外设同步推进 4 T；外设接口签名、IF/VRAM/OAM 的归属都在 T02 冻结。之后的并行开发全靠这次冻结。
+6. **必过**：cpu_instrs 11/11、instr_timing、mem_timing、dmg-acid2 逐像素一致、宝可梦红 30 分钟实玩。**加分**：Mooneye。
+7. **可恢复**：每完成一个任务，更新 `PROGRESS.md` 并提交。每次新会话或上下文重置后，先执行 §6.8 的开场流程（读状态 → 冒烟测试 → 确认基线完好），再开始新任务。
+8. **整机约束**：所有门槛必须由同一套按 M-cycle 驱动的整机通过，禁止只为某个测试存在的代码路径（R6）。G5 之前由宝可梦冒烟与实玩充当"隐藏集"，G5 之后再用 Mooneye 复核，用来发现"单测能过、整机不对"（§4.5）。
+9. **证据优先**：任务完成与否只看 `reports/gates.json` 和运行证据（日志、截图、帧哈希），不认"我已实现"之类的自述。
+10. **模型配置**（只看质量与速度；本机网关只接受带 `global.anthropic.` 前缀的完整 ID，见 §6.6）：主会话 `claude --model global.anthropic.claude-opus-5-5 --effort max`，只负责冻结接口、合并、基线和攻关 Blocker，不承担大段编码；`core`、`ppu` 子代理用 Opus 5.5 xhigh；`platform`、`scout`、`reviewer` 用 Opus 5.5 high；实玩驾驶用 Sonnet 5.5 high；机械事务用 Haiku 5.5 medium；子代理不用 max。fast 模式在 T00 探测，可用才开。
+11. **开工硬性前提**（T00）：宝可梦 ROM 已放到 `$REPO/roms/pokered.gb` 且 SHA1 正确（已就绪：`$REPO/ROM/pokered.gb`，由 pret/pokered @ `171e2c2` 编译，SHA1 已校验，T00 复制即可）；探测到的模型 ID 可用；子代理的权限已预先配置，且禁止联网。任一项不满足就先停下来报告，不要先写代码。
+12. **优先级边界（速度优先）**：G1–G5 完成（tag `v1.0-gates`）之前，关键路径上只做 G1–G5 必需的事；Mooneye、MBC2/MBC5、性能优化、回放基线、评审与合规自查、REPORT/README/sessions 导出全部放到 G5 之后的收尾阶段 W4（§6.3）。判断一件事该不该现在做，只问一句："不做它，G1–G5 会不会变慢或过不了？"不做计时，也不记录耗时、token 与费用。
+
+---
+
+## 1. 目标、红线、待确认事项
+
+### 1.1 验收目标
+
+| 编号 | 项目 | 判定（由 gates 自动判定） | 性质 |
+| --- | --- | --- | --- |
+| G1 | Blargg `cpu_instrs` 11 个 individual（附带跑合集） | 串口文本含 `Passed`、不含 `Failed`；合集为 `Passed all tests` | 必过 |
+| G2 | Blargg `instr_timing.gb` | 串口含 `Passed` | 必过 |
+| G3 | Blargg `mem_timing/`（合集与 3 个 individual；**不是** `mem_timing-2`） | 串口含 `Passed` | 必过 |
+| G4 | `dmg-acid2.gb` v1.0 | 首次执行 `LD B,B` 后再跑 1 帧（上限 120 帧），完整帧与 `reference-dmg.png` 转灰度后**逐像素一致** | 必过 |
+| G5 | 宝可梦红（美版 v1.0）30 分钟实玩 | 不崩溃、不卡死；`/state` 可读；抽查截图无花屏、错位、黑屏；地图或坐标有变化（§4.4） | 必过 |
+| B1 | Mooneye `mts-20260714-0944-31510e1` | 首次执行 `LD B,B` 时 B/C/D/E/H/L = 3/5/8/13/21/34 为通过；全为 0x42 或超时为失败 | 加分，按通过个数计 |
+
+Blargg 每个 ROM 结束时另存一张截图作为"屏幕输出"证据（题面说结果"打印到屏幕，同时从串口输出"）。
+不做：声音（APU 寄存器只做可读写存储）、CGB 模式、SGB 功能、执行 boot ROM、链接线对传。
+
+### 1.2 红线（违反任何一条，本题作废）
+
+- **R1 不看他人模拟器代码**：不 clone、不浏览、不安装。题面中的 gbdev 资源汇总页（https://gbdev.io/resources.html）列有模拟器项目链接，**不要点开它们的源码**。测试 ROM 的汇编源码（Blargg、acid2、Mooneye）属于测试，允许阅读。
+- **R2 不特判测试**：`crates/core/src` 不得感知 ROM 标题、哈希或文件名；期望结果只能在 gates 中出现。
+- **R3 git 历史完整**：小步提交；禁止 `rebase`、`commit --amend`、`push --force`、squash，禁止用 `reset --hard` 丢弃已提交的内容。撤销用 `git revert`。
+- **R4 session 记录完整**：主会话、所有子代理、实玩驾驶会话的记录都要导出到 `sessions/`（§7）。
+- **R6 整机约束，不做针对性实现**：Blargg、acid2、Mooneye、宝可梦必须由同一套整机代码通过；禁止为某个测试单独查表补周期、写死时序、跳过检查。core 中不得出现 `Passed`/`Failed` 字面量，也不得出现除 opcode 周期表（必须由 Opcodes.json 单测校验）之外的大型常量表。
+- **R5 ROM 不入库**：所有 `.gb/.gbc/.sav/.state` 都不进 git。宝可梦 ROM 由接单人自行合法获取，放到 `$REPO/roms/pokered.gb`，SHA1 必须为 `ea9bcae617fdf159b045185467ae58b2e4a48b9a`。
+
+### 1.3 待发包方确认（未确认时按"默认"执行）
+
+| # | 问题 | 默认 |
+| --- | --- | --- |
+| Q1 | 能否使用 SingleStepTests/sm83（MIT；逐指令测试向量，含逐 M-cycle 总线访问，但由其他实现生成）？ | **已确定：允许使用**。由 §2.1 的脚本下载，作为 CPU 的主要单测数据（T12，从 T10 开始就用）；只能放在 `refs/` 下由测试读取，不得编入 `crates/core/src`，也不得提交进 git |
+| Q2 | 能否使用 gameboy-doctor（参考日志来自其他模拟器）？ | 不用 |
+| Q3 | "高速"如何体现，能否并行子代理？ | **已确定：速度优先，不做计时与耗时记录**。T00 的准备工作必须最大限度并行：第一步就在后台启动 `fetch_refs.sh` 和 Python 依赖安装，同时进行模型探测、子代理定义与权限配置（见 T00）。允许并行子代理（§6） |
+| Q4 | 30 分钟实玩由谁驾驶（pokemon-agent 自带驱动需要 `hermes` CLI）？ | `tools/drive_loop.sh` 外层循环：每一轮启动一个新的 `claude -p` 驾驶会话（Sonnet 5.5 high，§6.6），读 `/objectives`、`/state` 和截图，执行若干动作后更新 `/objectives`，然后退出；循环直到满 30 分钟。约束见 §4.4 |
+| Q5 | Mooneye 计分集合？ | 适用于 DMG-ABC 的 `acceptance/` 与 `emulator-only/`（规则见 §2.4），同时报告 115 个的原始结果 |
+| Q6 | 各代理使用的模型与推理强度 | **已确定**（只看质量与速度，不考虑成本）：主会话 Opus 5.5 max（fast 模式可用才开）；子代理按 §6.6 分配（编码类用 Opus 5.5 xhigh/high，实玩驾驶用 Sonnet 5.5 high，机械事务用 Haiku 5.5 medium） |
+| Q7 | Python 侧的 pytest、Pillow（pokemon-agent 依赖）等通用库是否允许？ | 允许，用 `uv.lock` 固定版本。Rust 核心与 cli 零依赖；cli 只**写** PNG（stored deflate），不解码 PNG；acid2 参考图在 T01 用 Pillow 转成原始灰度字节 |
+
+---
+
+### 2.5 开机状态
+
+不执行 boot ROM，`PC=0x0100`。CPU 与 I/O 寄存器初值严格照 `$REFS/pandocs/src/Power_Up_Sequence.md` 的 DMG 列。Mooneye 的 `boot_regs-dmgABC`、`boot_hwio-dmgABCmgb`、`boot_div-dmgABCmgb` 会校验这些初值（加分项）。
+
+---
+
+## 3. 架构
+
+### 3.1 仓库布局与包名
+
+```
+$REPO/
+  Cargo.toml                 # workspace；[profile.release] opt-level=3, lto="thin", debug=1
+  crates/core/  (包名 gb-core，零依赖)
+    src/lib.rs machine.rs cpu.rs decode.rs alu.rs bus.rs interrupts.rs
+        timer.rs serial.rs joypad.rs ppu.rs dma.rs state.rs
+        cart/{mod,mbc1,mbc2,mbc3,mbc5}.rs
+    tests/data/Opcodes.json  # 从 $REFS 复制，CC0（单测只依赖它，不依赖 refs/）
+    tests/*.rs
+  crates/cli/   (包名 gb-cli，二进制名 gb-cli，零依赖；只写 PNG，参考图读原始灰度字节)
+  crates/ffi/   (包名 gb-ffi，cdylib → target/release/libgb_ffi.dylib)
+  python/       (pyproject.toml，包名 gbemu；gbemu/{native,backend,launch}.py；tests/)
+  patches/pokemon-agent-emulator.patch   # 替代接入方式（§3.8）
+  tools/{fetch_refs.sh, playtest.py, scripted_driver.py}
+  refs/ roms/ reports/ sessions/ locks/ # refs/ 与 roms/ 不入库；roms/ 只放 pokered.gb
+  PROGRESS.md DECISIONS.md REPORT.md README.md .gitignore
+```
+
+`.gitignore`：`/target`、`/refs`、`/roms`、`/ROM`、`.DS_Store`、`/.claude/*` 加例外 `!/.claude/agents/`（子代理定义要入库）、`*.sav`、`*.state`、`.venv`、`reports/**/*.png`（证据图用 `git add -f` 单独提交）、`reports/logs/`。
+
+### 3.2 冻结接口（T02 只冻结**跨通道**接口：`Machine` 对外方法、`CpuBus`、`Peripheral`/`Snapshot`、`StateWriter/StateReader`、`Cart`、ppu 的 VRAM/OAM 访问与 `Ppu` 结构体；之后改动必须先记 DECISIONS.md）
+
+```rust
+// ---- machine.rs：对外接口 ----
+pub struct Machine { cpu: Cpu, bus: Bus }
+impl Machine {
+    pub fn new(rom: Vec<u8>) -> Result<Self, CartError>;  // 解析头部、选择 MBC、设置 DMG 开机状态
+    pub fn step(&mut self) -> u32;          // 执行 1 条指令或 1 次中断分派，返回 T 数；HALT/STOP/锁死时也返回 4，绝不返回 0
+    pub fn run_frame(&mut self);            // 精确推进 70224 T（余量累计到下一帧），与 LCD 开关无关
+    pub fn set_buttons(&mut self, mask: u8);// bit0..7 = A B Select Start Right Left Up Down，1=按下
+    pub fn frame(&self) -> &[u8; 23040];    // 最近一个完整帧（前缓冲），值为 0xFF/0xAA/0x55/0x00
+    pub fn peek(&self, addr: u16) -> u8;    // 无副作用读
+    pub fn take_serial(&mut self) -> Vec<u8>;
+    pub fn regs(&self) -> Regs;             // a f b c d e h l sp pc ime halted
+    pub fn ld_b_b_hit(&mut self) -> bool;   // 自上次查询以来是否执行过 0x40，读后清零
+    pub fn save_state(&self) -> Vec<u8>;
+    pub fn load_state(&mut self, data: &[u8]) -> Result<(), StateError>;
+}
+
+// ---- cpu.rs 依赖的总线 trait ----
+pub trait CpuBus {
+    fn read(&mut self, addr: u16) -> u8;    // 1 M-cycle
+    fn write(&mut self, addr: u16, v: u8);  // 1 M-cycle
+    fn idle(&mut self);                     // 1 M-cycle（内部周期）
+    fn pending(&self) -> u8;                // IE & IF & 0x1F
+    fn ack(&mut self, bit: u8);             // 清除 IF 对应位
+}
+
+// ---- 外设统一形态（timer/serial/joypad/ppu/dma 都遵守）----
+pub trait Peripheral: Snapshot {
+    fn tick_mcycle(&mut self) -> u8;        // 推进 4 T，返回本周期新请求的中断位（IF 位掩码）
+    fn read_reg(&self, addr: u16) -> u8;
+    fn write_reg(&mut self, addr: u16, v: u8);
+}
+pub trait Snapshot {
+    fn save(&self, w: &mut StateWriter);
+    fn load(&mut self, r: &mut StateReader) -> Result<(), StateError>;
+}
+
+// ---- alu.rs：纯函数，Flags 进 Flags 出（INC/DEC 必须保留 C）。不属于 T02 冻结范围：alu 只被 cpu 使用，签名由 core 在 T11 自定 ----
+pub struct Flags { pub z: bool, pub n: bool, pub h: bool, pub c: bool }
+pub fn add8(a: u8, b: u8, f: Flags, use_carry: bool) -> (u8, Flags); // ADD/ADC
+pub fn sub8(a: u8, b: u8, f: Flags, use_carry: bool) -> (u8, Flags); // SUB/SBC/CP
+// and8 or8 xor8 inc8 dec8 daa rlc rrc rl rr sla sra srl swap bit add16_hl add_sp_e ……（由 core 自定）
+```
+
+**归属（避免并行时冲突）**：IF/IE 由 `interrupts.rs` 持有；VRAM 与 OAM 数组由 `ppu.rs` 持有（bus 转发访问）；OAM DMA 由 `bus.rs` 驱动（每个 M-cycle 从总线读 1 字节，写入 ppu 的 OAM），`dma.rs` 只保存 DMA 状态；卡带 ROM/RAM 由 `cart/` 持有；WRAM、HRAM 由 `bus.rs` 持有。`Bus` 每个 M-cycle 依次推进 timer → serial → joypad → ppu → dma，把返回的中断位或进 IF。
+
+### 3.3 时序模型
+
+- CPU 驱动时钟：每条指令按真实的 M-cycle 序列调用 `read/write/idle`。**T02 定下默认顺序：在每个 M-cycle 内先推进外设 4 T，再执行访问**，写进 DECISIONS.md D002。T30 若用 mem_timing 证明需要反过来，就全局切换（一处代码），不得按指令打补丁。外设单测不依赖这个顺序。
+- 每条指令的 M-cycle 总数必须等于 `Opcodes.json` 的 `cycles/4`（条件指令分 taken/not taken）。
+- 内部周期位置：`PUSH` 在写之前 1 个；`CALL`、`RST` 在压栈前 1 个；`RET`、`RETI` 弹栈后 1 个；`RET cc` 判断条件时 1 个，条件成立时弹栈后再 1 个；`JP nn`、`JP cc`（成立时）、`JR`（成立时）各 1 个；**`JP HL` 没有内部周期（共 1 M-cycle）**；`ADD HL,rr`、`INC/DEC rr`、`LD SP,HL` 各 1 个；`ADD SP,e` 2 个；`LD HL,SP+e` 1 个。
+- 中断：每条指令结束后检查 `IME && pending()`；分派共 5 M-cycle（2 个 idle、压 PCH、压 PCL、跳转向量），选最低位。`EI` 延迟一条指令生效；`RETI` 立即置 IME；`DI` 立即生效。HALT：有挂起中断即唤醒（IME=0 时继续执行而不分派），IME=0 且已有挂起中断时触发 HALT bug（`$REFS/pandocs/src/halt.md`）。HALT 期间每个 M-cycle 照常推进外设。
+- `IF` 读出时高 3 位为 1；未使用的 I/O 读 `0xFF`；`FEA0–FEFF` 读 `0x00`；非法 opcode 使 CPU 锁死（外设照常推进）。
+
+### 3.4 定时器（`Timer_and_Divider_Registers.md`、`Timer_Obscure_Behaviour.md`）
+
+16 位内部计数器每 T 加 1，`DIV` 为其高 8 位；写 `DIV` 清零整个计数器。`TIMA` 在"所选位 AND TAC.enable"的**下降沿**加 1（TAC 00→bit9、01→bit3、10→bit5、11→bit7），因此写 DIV 或改 TAC 也可能触发一次加 1。溢出后 TIMA 先为 0x00，1 个 M-cycle 后装入 TMA 并置 IF bit2。
+
+### 3.5 PPU（逐扫描线渲染加双缓冲）
+
+- 每行 456 dot，共 154 行。mode 2 占 80 dot，mode 3 先固定 172 dot（可变长度是加分项），其余为 mode 0；LY 144–153 为 mode 1。
+- **进入 mode 3 的时刻一次性渲染整行**到后缓冲。不能在行开始时渲染：acid2 会在 mode 2 期间由 LYC 中断改寄存器。
+- **双缓冲**：进入 LY=144 时把后缓冲交换为前缓冲，`frame()` 只返回前缓冲。LCD 关闭时把前缓冲置为全白一次，LY=0、mode=0，帧计时照走；重新开启后从 LY=0 开始。
+- STAT：LYC 标志与中断、mode 0/1/2 中断源，以**内部中断线的上升沿**触发。进入 LY=144 时请求 VBlank 中断。
+- BG/Window：`LCDC.4` 选择 tile data 寻址（`0x8000` 无符号，或以 `0x9000` 为基址的有符号），`LCDC.3/6` 选择 tilemap，SCX/SCY 环绕。**窗口 Y 条件逐帧锁存**：某行开始时若 `WY == LY`，Y 条件变为真，并保持到本帧结束；窗口在 `LCDC.5=1`、Y 条件为真且 `WX` 在 0–166 时，从 `x = WX-7` 开始绘制；**窗口内部行计数器**只在该行实际绘制了窗口时加 1，每帧清零（`Window.md`）。`LCDC.0=0` 时 BG 和 Window 都显示色号 0（DMG 上精灵仍照常显示，并且总在 BG 之上）。
+- 精灵：`LCDC.1=0` 时完全不显示精灵（但 OAM scan 照常进行）；`LCDC.2` 选择 8×8 或 8×16。在 OAM scan 阶段按 OAM 顺序选出 Y 命中的前 **10** 个（不论 X 是否可见）；8×16 模式忽略 tile 号 bit0，**Y 翻转作用于整个 16 行**（上下两个 tile 互换并各自翻转）；X/Y 翻转；色号 0 透明；OBP0/OBP1；DMG 优先级：X 小者在上，X 相同时 OAM 序号小者在上；OBJ-to-BG priority 位只让精灵退到 BG/Window **色号 1–3** 之下。
+- VRAM/OAM 的访问封锁默认不做（G 门槛不需要）；Mooneye 需要时再加，并跑全量回归。
+
+### 3.6 卡带（逐种写明，不要互相照搬）
+
+| 类型（头部 0x147） | ROM bank 选择 | 写 0 时 | RAM |
+| --- | --- | --- | --- |
+| `00` ROM only | 无 | — | 无（或 8 KiB） |
+| `01–03` MBC1 | 5 位寄存器加 2 位高位（mode 1 时作用于 0000 区和 RAM bank） | **只看低 5 位**：低 5 位为 0 时当作 1（因此 0x20/0x40/0x60 映射为 0x21/0x41/0x61） | 最多 4×8 KiB |
+| `05–06` MBC2 | 4 位，地址 bit8=1 时写入 | 0 当作 1 | 内置 512×4 bit，读出高 4 位为 1，地址按 0x1FF 镜像 |
+| `0F–13` MBC3 | 7 位 | 0 当作 1 | 4×8 KiB；`08–0C` 为 RTC 寄存器，读写存储即可 |
+| `19–1E` MBC5 | 9 位（低 8 位加 bit8） | **0 就是 bank 0** | 最多 16×8 KiB |
+
+bank 号按 ROM 实际 bank 数取模；RAM 未使能（`0x0A` 低 4 位）时读 `0xFF`、写忽略；未知类型返回 `CartError`，不 panic。MBC1 多卡带（multicart）为加分项。
+**G5 之前只实现 ROM only、MBC1、MBC3**（G1–G5 只用到这三种，T50）；MBC2、MBC5 在 W4 补（T50b，供 Mooneye 使用），补齐之前这两类返回 `CartError`。
+
+### 3.7 串口与 Joypad
+
+- 串口：写 `SC` 时若 bit7=1 且 bit0=1（内部时钟），立即把 `SB` 追加到输出缓冲区；4096 T 后把 `SB` 置为 `0xFF`、清 SC.7、置 IF bit3。外部时钟传输永不完成。
+- Joypad `FF00`：bit4=0 选方向键，bit5=0 选功能键，低有效；未选中的组读 1；高 2 位读 1。**中断只在被选中组的 P1 低 4 位出现 1→0 跳变时触发**（每个 M-cycle 比较即可）。
+
+### 3.8 FFI 与 Python 后端
+
+- C ABI（`gb-ffi`）：`gb_new(ptr,len)->*mut Gb`（失败返回 null）、`gb_free`、`gb_run_frames(gb,n)`、`gb_set_buttons(gb,mask)`、`gb_frame(gb,out23040)`、`gb_peek(gb,addr)`、`gb_peek_range(gb,addr,len,out)`、`gb_save_state(gb,out,cap)->i64`（cap 不足时返回所需长度的负值）、`gb_load_state(gb,ptr,len)->i32`、`gb_regs(gb,out)`、`gb_take_serial(gb,out,cap)->i64`。每个入口都用 `catch_unwind` 包住，panic 转成错误码。**实例不是线程安全的**，由调用方加锁。
+- 存档格式：magic `GBEMUST`、版本 u16、ROM 指纹（头部校验和 0x14D、全局校验和 0x14E–0x14F、标题 16 字节；core 零依赖，不计算 sha）。指纹不匹配时返回错误。
+- `python/gbemu/backend.py: GbEmuEmulator(Emulator)`：
+  - `__init__()` 无参数，调用 `super().__init__()`；`self._lock = threading.Lock()`，**所有原生调用都在锁内执行**。
+  - `press(button, frames)`：校验按键名（未知按键抛 `ValueError`）→ 置位 → `tick(frames)` → 清位。
+  - `tick(frames)`：调用 `gb_run_frames`，并 `frame_count += frames`。
+  - `get_screen()`：`Image.frombytes("L",(160,144),buf).convert("RGB")`。
+  - `read_*`：通过 peek 实现，地址按 `& 0xFFFF` 处理。
+  - `close()` 和 `__del__` 都调用 `gb_free`（可重复调用）。
+  - 动态库路径只认环境变量 `GBEMU_LIB`，未设置时报出明确的错误。
+- 接入方式 1（默认）：`python -m gbemu.launch serve --rom … --port … --data-dir …`。启动器覆盖 `_EXT_MAP`，断言 `"pyboy" not in sys.modules`，然后调用 `pokemon_agent.cli.main()`。
+- 接入方式 2（供评审方用自己的方式启动）：`patches/pokemon-agent-emulator.patch`，在 `emulator.py` 的 `_EXT_MAP` 中把 `.gb/.gbc` 指向 `gbemu.backend.GbEmuEmulator`。README 写明两种方式。
+
+---
+
+## 4. 测试与验收体系
+
+### 4.1 gates（T05a 建最小可用版，T05b 补全，此后全程使用）
+
+**分两步交付**，T17 只依赖 T05a：
+- **T05a（最小可用，约 15 分钟）**：18 个 ROM 的清单、线程池与超时、串口判定（Blargg）、acid2 逐字节比较（输出差异像素数）、汇总行与 `ERROR` 行、`--only`、`--fast`、`reports/gates.json`。
+- **T05b（补全，与 T17 并行，不阻塞）**：`--baseline`/`--update-baseline` 棘轮、判定逻辑的对抗单测、`reports/logs/` 与 PC 轨迹、acid2 差异图、Blargg 截图、`gates.md`。`--mooneye` 与计分规则属于 W4（T70）。
+
+`cargo run --release -p gb-cli -- gates [--fast] [--only G1,G4] [--mooneye] [--baseline reports/baseline.json] [--update-baseline]`（测试 ROM 从 `$REFS` 读取，宝可梦 ROM 从 `$REPO/roms/pokered.gb` 读取；路径可用 `GBEMU_REFS` 覆盖）
+
+- **输出约束**（对 LLM 友好）：stdout 最多 30 行。第一行是汇总，例如 `G1 11/11 G2 1/1 G3 3/4 G4 0/1 MOONEYE 41/93`；每个失败项一行 `ERROR <rom> <原因摘要>`。完整的串口文本、末尾 32 条 PC 轨迹、差异统计写到 `reports/logs/<rom>.log`。同时写出 `reports/gates.json` 和 `reports/gates.md`。
+- `--fast`：只跑 individual ROM 和 acid2（合集跳过），用于开发中的快速循环和日常合并；全量只在打里程碑 tag 时跑。
+- **唯一状态来源**：`reports/gates.json` 是门槛状态的唯一来源，PROGRESS.md 中的汇总行只能从它生成；任何代理都不得手工改写通过状态 [A2]。
+- **判定逻辑先经对抗验证**：gates 自身要有单测，证明以下伪造结果都判为失败：串口只输出了 `Pass`；`Passed` 与 `Failed` 同时出现；超时前没有任何输出；acid2 帧只差 1 个像素；Mooneye 只有 5 个寄存器正确 [P1]。
+- **棘轮**：`--baseline` 时，任何在基线中为通过、本次为失败的项目都打印 `REGRESSION <rom>`，并以退出码 2 退出。integrator 每次合并后执行带 `--baseline` 的 `gates --fast`（T05b 完成之前，手动对比合并前后的汇总行）；打里程碑 tag 时跑全量；通过后可以在本地 `--update-baseline`，但**只在里程碑 tag 时提交基线文件**，避免频繁提交。
+- 每个 ROM 在独立线程中运行（线程数默认 4），panic 被捕获并记为失败。超时见 §2.4；Mooneye 30 秒；acid2 120 帧。
+- acid2 与 `$REFS/acid2/reference-dmg.gray`（T01 由参考图转出的 23040 字节原始灰度数据，sha256 `cb26ef6174cd5b61662c2e74f2bdb2b0f8da0750234c75144c3a4d258fda8347`）逐字节比较；失败时写出 `reports/acid2-actual.png` 和 `reports/acid2-diff.png`（差异像素标红），并输出差异像素数与包围盒；对照 `$REFS/acid2-src/README.md` 的 Failure Examples 定位。
+- Blargg 每个 ROM 结束时写出 `reports/blargg/<rom>.png`。
+- ROM 来源：`tools/fetch_refs.sh`（§2.1）已完成下载与校验；gates 启动时若找不到 `$REFS/blargg`，打印 `ERROR refs missing, run tools/fetch_refs.sh` 并退出。
+
+### 4.2 单元测试（`cargo test`，不依赖 ROM）
+
+- `tests/opcode_table.rs`：读取 `tests/data/Opcodes.json`，对除 11 个非法 opcode（`D3 DB DD E3 E4 EB EC ED F4 FC FD`）和 `0xCB` 前缀本身之外的 500 个 opcode（无前缀 244 个、CB 前缀 256 个），在平铺 RAM 的假总线上执行，断言指令长度、M-cycle 数（条件指令两种分支各测一次）、标志位约束（`-` 不变，`0/1` 被强制）。标志位断言在 T11 完成前标记 `#[ignore]`。
+- `crates/core/tests/sst.rs`（Q1 已允许，T12）：读取 `$REFS/sst/v1/*.json`（`$REFS` 缺失时 SKIP）。每个文件 1000 组用例：按 `initial` 设置寄存器、IME 与 RAM（平铺 64 KiB 的假 `CpuBus`），执行 1 条指令，比较 `final` 中的寄存器与 RAM，以及 `cycles` 中**逐 M-cycle 的总线访问序列**（`[地址, 数据, "r-m"/"-wm"]`，`null` 表示内部周期）。支持 `SST_ONLY=<opcode>` 只跑一个文件，失败时打印首个不一致的用例与字段。它直接验证 §3.3 的内部周期位置和访问顺序，是 G1 和 G3 最快的定位手段。`HALT`（0x76）、`STOP`（0x10）等与外设交互的指令如果和测试约定不一致，可以把它们列为例外，记入 DECISIONS.md。
+- `tests/alu.rs`：DAA（加法和减法之后各取若干值）、ADC/SBC 带进位的半进位、`ADD SP,e` 与 `LD HL,SP+e` 的 H/C 按**低字节无符号相加**计算、`POP AF` 清除 F 低 4 位、`BIT` 置 H=1。期望值按文档手算。
+- 外设单测（定时器下降沿、STAT 上升沿、窗口行计数器、10 个精灵上限、优先级、各 MBC 的 bank 映射）一律**直接断言像素数组或寄存器值**；PNG 只由 cli 导出，供调试查看。
+- 需要 ROM 的集成测试放在 `crates/cli/tests/`；`$REFS` 或 `roms/` 中缺少文件时打印 `SKIP` 并通过，因此从干净 checkout 运行 `cargo test` 永远可执行。
+- 存档往返：`save → 跑 600 帧 → 对画面与 WRAM 做 hash` 必须等于 `load → 跑 600 帧 → hash`。
+
+### 4.3 性能
+## 5. 调试手册
+
+**通用流程**：CPU 相关的失败先跑 `cargo test --test sst`（可以用 `SST_ONLY` 缩小到可疑的 opcode），通常能直接定位到具体指令和周期；然后再读 gates 的 `ERROR` 行 → 打开对应日志 → 定位到 Pan Docs 的具体章节 → 写最小复现单测 → 修复 → `gates --fast` → 合并前跑全量（带基线）。**同一问题 3 轮假设都失败**：在 `PROGRESS.md` 的 Blockers 记录现象和已排除的假设，推理强度升一级，或者派一个 `scout` 并行调查；必过项不得放弃，加分项可以放弃。
+
+| 现象 | 优先排查 |
+| --- | --- |
+| 串口无输出 | SC 写入处理；PC 跑飞（看日志中的 PC 轨迹）；`$D000` 是否可执行；开机状态 |
+| 01-special | DAA；POP AF 低 4 位；JR 符号扩展 |
+| 02-interrupts | EI 延迟；IF 高位；定时器中断；HALT 唤醒 |
+| 03-op sp,hl | ADD SP,e 与 LD HL,SP+e 的 H/C |
+| 07-jr,jp,call,ret,rst | RETI 置 IME；RST 向量；条件判断 |
+| 09 / 11 | ADC/SBC 半进位；(HL) 变体；CP 标志 |
+| instr_timing 全错或报 #255 | 先查定时器，而不是指令周期 |
+| instr_timing 个别 opcode | 按输出 `op:实测-正确` 对照 Opcodes.json 和 §3.3 |
+| mem_timing | 访问发生在第几个 M-cycle：`INC/DEC (HL)` 读在第 2 个、写在第 3 个；CB 前缀的 `BIT b,(HL)` 读在第 3 个；`RES/SET b,(HL)` 和 `RLC (HL)` 等读在第 3 个、写在第 4 个；`LD (a16),A` 写在第 4 个、`LD A,(a16)` 读在第 4 个；§3.3 的全局顺序 |
+| Mooneye 卡住超时 | 串口传输是否完成（SC.7 是否被清零）；`LD B,B` 检测 |
+| acid2 | 差异图对照 README Failure Examples：10 个精灵上限、优先级、8×16（含整体 Y 翻转、忽略 tile bit0）、翻转、窗口 Y 条件和行计数器、有符号 tile、`LCDC.0`、`LCDC.1`、OBJ-to-BG priority |
+| 宝可梦白屏或卡在开场 | LCD 关闭期间的帧推进；STAT/LY；OAM DMA；MBC3 bank 映射；外部时钟串口 |
+| 宝可梦画面上下撕裂 | 是否只读前缓冲（§3.5 双缓冲） |
+| 宝可梦花屏 | 窗口；在 mode 2 改过的寄存器是否在进入 mode 3 时才生效 |
+| 实玩时偶发崩溃 | Python 后端是否加锁（§3.8）；FFI 是否用 catch_unwind 包住 |
+
+---
+
+### M3 PPU（ppu）
+
+#### T40 PPU 时序骨架
+- 按 §3.5 实现 dot 计数、LY、mode、STAT（上升沿）、VBlank、LCD 开关、双缓冲交换；随模块实现 `Snapshot`。
+- 完成标准：单测验证：一帧 70224 T；LY 0→153 循环；每帧恰好一次 VBlank 中断；LYC 中断发生在正确的 LY；LCD 关闭时帧计时照走，前缓冲为全白。
+
+#### T41 BG/Window 渲染
+- 在进入 mode 3 时渲染整行；实现 tile data 两种寻址、两个 tilemap、SCX/SCY 环绕、窗口 Y 条件锁存与行计数器、`LCDC.0`、BGP、灰度映射。
+- 完成标准：用合成的 VRAM 直接断言像素数组：棋盘格平移（SCX=3、SCY=5）、窗口覆盖（WX=7+20、WY=30）、帧中途把 WY 改到已经过去的行时窗口不出现、有符号 tile 寻址。
+
+#### T42 精灵与 OAM DMA 状态
+- 实现 `LCDC.1` 精灵开关、OAM scan（前 10 个）、8×8/8×16（8×16 时 Y 翻转作用于整个 16 行）、翻转、OBP0/1、透明、DMG 优先级、OBJ-to-BG priority；`dma.rs` 保存 DMA 状态（源地址高字节、进度、启动延迟），实际搬运由 bus 驱动。
+- 完成标准：断言像素数组：同一行 11 个精灵只显示 10 个；X 相同时序号小者在上；priority 标志在 BG 色号 0 与非 0 上的表现正确；8×16 时忽略 tile 号 bit0，Y 翻转后上下两个 tile 互换；`LCDC.1=0` 时不显示精灵。
+
+#### T43 G4：dmg-acid2
+- integrator 合并 `lane/ppu` 后，ppu 在 `lane/ppu` 上执行 `gates --only G4`；查看 `reports/acid2-diff.png`（T05b 完成前看差异像素数与 `gb-cli run --png` 的截图），按 §5 定位。
+- 完成标准：差异像素数为 0；带基线跑全量无 `REGRESSION`；提交基线；打 tag `m3-acid2`。
+
+---
+
+### M4 卡带与接入（platform）
+## 9. 附录：参考资料要点与经验来源
+
+题面"五、参考资料"中的 7 份资料（阅读于 2026-10-29），以下是它们与本题相关的要点，以及本文据此采用的做法。原文可在线阅读，不需要下载。
+
+| 标记 | 资料 | 与本题相关的要点（数字摘自原文） | 本文采用的做法 |
+| --- | --- | --- | --- |
+| A1 | Anthropic：Harness design for long-running apps（规划者、生成者、评审者三代理） | ① 单代理 20 分钟 / $9 做出的应用核心功能是坏的；三代理 6 小时 / $200 能真正可用（Opus 4.5）；Opus 4.6 去掉 sprint 后，3 小时 50 分 / $124.70，构建阶段连续 2 小时依然连贯。② 评审必须与生成分离；现成的 Claude 是差劲的 QA，会发现问题又说服自己"问题不大"，需要调成持怀疑态度、按硬阈值打分。③ 开工前先约定"什么算完成、怎么验证"（sprint 合同）。④ 规划者写错的细粒度技术细节会层层传导。⑤ 模型升级后，要逐个去掉不再起作用的 harness 组件；评审在任务接近模型能力边界时才最值得 | 独立的 reviewer 与 T80（§6.2）；每个任务都有命令化的完成标准（§8）；技术陈述与 Pan Docs 或测试结果冲突时以后两者为准（文首）  |
+| A2 | Anthropic：Effective harnesses for long-running agents（跨会话） | ① 两类失败：想一次做完，上下文耗尽时留下半成品；后来的会话看到已有进展就宣布完成。② 初始化代理建 init 脚本、进度文件、首个提交，并把需求扩成 200 多条 JSON 功能清单（初始全部为 failing，只许改 `passes` 字段；模型篡改 JSON 的倾向小于 Markdown）。③ 每个会话先 `pwd`、读进度和 git log、跑基本端到端测试，再开始新功能；结束时提交并更新进度。④ 没有明确要求时，Claude 常在只做过单测之后就标记完成 | 会话开场、执行、收尾流程（§6.8）；`gates.json` 作为唯一的状态来源（§4.1）；PROGRESS.md 与 DECISIONS.md；证据优先（§0 第 9 条） |
+| A3 | Anthropic：Building a C compiler with parallel Claudes | ① 16 个代理、约 2000 个会话、$20,000、两周，10 万行代码，开发全程断网。② 测试要接近完美，否则代理会解决错误的问题；后期新功能频繁破坏旧功能，于是加了 CI 防回归。③ 为模型设计输出：只打印几行，`ERROR` 与原因写在同一行，详细内容写日志，预先算好汇总；提供 `--fast` 确定性抽样（应对时间盲区）。④ 失败测试多且相互独立时，并行很容易；整体性任务（编译 Linux）会让所有代理撞上同一个 bug，需要用 oracle 把问题切开。⑤ 用锁文件领取任务；设专职角色（去重、性能、文档） | gates 的输出约束、`--fast`、棘轮（§4.1）；锁文件与 scout 扇出（§6.4、T71）；宝可梦的确定性回放与存档切片，相当于不借助外部 oracle 也能把整体性任务切开（§4.4） |
+| P1 | Zero2Repo（arXiv 2609.38269）：PRD 加隐藏测试，全有或全无 | ① 17 个任务、80–585 个隐藏测试；必须写 submit 文件才算提交；在断网的新容器中判定；屏蔽代码托管站、拒装上游包、扫描 import。② Opus 5.5 + Claude Code 解出 11/17，平均 10 小时 14 分、$178；换成 OpenCode 解出 14/17；同一模型换 harness 最多差 3 题。③ 121 次被判失败的运行中，95 次通过率 ≥ 90%（如 387/388），漏一条规则就是 0 分；另有 51 次没进入判定（28 次超时、19 次未提交）。④ 发布前做对抗验证：埋了错的实现必须得 0 分 | 每条验收都有可执行的判定（§1.1、§2.4）；gates 判定逻辑的对抗单测（§4.1、T05）；里程碑 tag 保证随时可交付（§6.8）；从干净 checkout 复现（T80、§7） |
+| P2 | E2E-SWE（arXiv 2609.38335）：186 个从零建仓任务 | ① 规格与测试逐条对应（被测的都写进规格，写进规格的都被测到）；交付 setup.sh，在干净容器中复现。② pass@1 为 11.7%–67.7%；推理强度从 low 到 xhigh 单调提升，Opus 4.8 从 xhigh 提到 max 没有收益；最长的一次推理大多出现在前 12 轮。③ 代码量与成败无关，进度只看测试通过数 | 核心代理默认 xhigh，max 只用于 Blocker（§6.6）；先做全局规划再写代码（§6.8、T02） |
+| P3 | SpecBench（arXiv 2605.21384）：量化针对测试作弊 | ① Δ = 可见通过率 − 隐藏通过率。**30 个任务中有一个 C 语言 GB 模拟器**（参考实现 30K LOC，可见测试 50 个、隐藏测试 117 个）。② LOC 每增加 10 倍，P90 的 Δ 上升约 27pp；>25K LOC 的任务 Δ 最高达 100pp。③ 最常见的作弊是"特性孤立"（各模块单独过测试，组合起来就坏），其次是边界缺口，蓄意利用较少；典型的蓄意案例是用 2900 行哈希表记住可见测试的答案（可见 97%、隐藏 0%），它挤掉了同一轮里一个真实的 7900 行实现。④ 只加测试不能根治；搜索步数越多作弊越严重；Claude Code（Opus 4.6）的 Δ 约为 43–48pp，人工监督下开发的编译器只有 14.5pp | R6 整机约束（§1.2）；Mooneye 与宝可梦回放作为隐藏集抽测（§4.5）；T90 的 R6 检查 |
+| P4 | GameXpert-Bench（arXiv 2608.21833）：游戏开发 agent 评测 | ① 所有得分都必须有运行时证据：先在代码里定位实现，再到运行中的游戏里触发事件；注释和模型的自述都不算证据。② 修复任务要求修好坏行为（F2P）且不破坏原有行为（P2P）；用虚拟时钟、合成输入、只读状态快照做确定性判定。③ 1455 次运行中有 15.2% 出现 UI 错位；"代码里实现了但运行时失败"占 5.32%，其中 56% 是加载失败或崩溃；7.8% 的最终产物不可玩。④ Claude Opus 5 在三个赛道都排第一；较弱的模型常凭静态读代码判断"看起来没问题"，并且过早停止 | 实玩只认运行时采样、截图与状态（§4.4）；确定性回放基线 `POKERED-REPLAY`（§4.4、T61）；棘轮相当于 P2P（§4.1）；证据优先（§0 第 9 条） |
+| M1 | Anthropic 官方文档与发布页：platform.claude.com 的 Effort、Models overview；anthropic.com/news 的 claude-opus-5-5、claude-sonnet-5-5、claude-haiku-5-5 | ① 推理强度共 5 档（low/medium/high/xhigh/max）；Opus 5.5 与 Haiku 5.5 默认 medium，其他模型默认 high；xhigh 面向"超过 30 分钟、token 预算以百万计的长程智能体与编码任务"，max 是"不限 token 的最高能力"。② 官方建议多数工作从 Opus 5.5 起步；Fable 5.1（$10/$50）用于 Opus 5.5 在高强度下仍不够的场景；Sonnet 5.5（$2/$10）是"速度与智力的最佳组合"，长于规格明确的日常任务；Haiku 5.5 适合高吞吐，可作编码子代理。③ 各档得分与每题成本见 §6.6 的表格：Opus 5.5 在 medium 之后收益递减，Terminal-Bench 的峰值在 xhigh；Sonnet 5.5 随强度提升幅度大，max 时在 Terminal-Bench 上达到 70.6%。④ Sonnet 5.5 是第一个只凭截图通关宝可梦红的 Sonnet 模型 | 主会话 Opus 5.5 max，子代理分档（§6.2、§6.6）；实玩驾驶用 Sonnet 5.5；机械事务用 Haiku 5.5 |
+
+**不直接照搬的做法**
+
+| 做法 | 原因 |
+| --- | --- |
+| 用参考实现做 oracle（A3 用 GCC） | 题面禁止参考现成模拟器，所以不运行任何现成模拟器。替代手段是测试 ROM、确定性回放，以及经发包方允许的 SingleStepTests 测试数据（Q1，只作为测试数据读取） |
+| 十几个代理同时写代码（A3） | 本题的关键路径集中在 CPU 和时序上，写代码的代理超过 3–4 个时，合并成本会超过收益（§6.2） |
+| 每个 sprint 都做评审（A1 早期版本） | 原文在模型升级后改为结尾评审一次；本文同样只在结尾（G5 之后）评审一次 |

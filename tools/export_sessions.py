@@ -42,10 +42,13 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("x-api-key", re.compile(r"(?i)(x-api-key" + _SEP + r")(" + _VALUE + r")")),
     # sk- 开头的密钥样式（前面不能紧挨字母数字，如 task-、disk-）
     ("sk-key", re.compile(r"()((?<![A-Za-z0-9])sk-[A-Za-z0-9_\-]{16,})")),
+    # 已部分打码、只露出前几位的令牌（如 sk-abcd***）：前缀也一并屏蔽
+    ("sk-prefix", re.compile(r"()((?<![A-Za-z0-9])sk-[A-Za-z0-9]{1,15}(?=\*{3}))")),
 ]
 
 # 环境变量与 Claude 设置中的这些名字的实际值，出现在任何位置都打码。
-SECRET_ENV_NAMES = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY")
+# ANTHROPIC_BASE_URL 是内部网关地址，不是凭据，但同样不对外公开，按字面值打码。
+SECRET_ENV_NAMES = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL")
 
 
 def secret_values(extra_settings: list[Path] | None = None) -> list[str]:
@@ -70,6 +73,9 @@ def secret_values(extra_settings: list[Path] | None = None) -> list[str]:
             v = env.get(name)
             if isinstance(v, str) and len(v) >= 8:
                 vals.add(v)
+    # sk- 令牌的前 7 个字符（sk- 加 4 位）也按字面值打码：记录中可能出现只露出前几位的写法。
+    # 前缀在运行时从真实令牌推导，绝不写进代码或输出。
+    vals |= {v[:7] for v in list(vals) if v.startswith("sk-") and len(v) >= 12}
     # 长的先替换，避免短值是长值的子串时留下残片
     return sorted(vals, key=len, reverse=True)
 

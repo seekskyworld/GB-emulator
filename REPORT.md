@@ -190,7 +190,7 @@
 | --- | --- | --- | --- |
 | 1 | git 仓库保留完整历史；`v1.0-gates` 打在通过 T62 实玩的提交上 | ✅ | `git show v1.0-gates` 指向 7558ce3，与 `reports/playtest/T62-rc-gates-7558ce3/summary.md` 中的 `git_head` 一致。全部为小步提交加 `--no-ff` 合并，没有 rebase、amend 或 force（T90 第 4 项） |
 | 2 | REPORT.md、`reports/gates.md`、`reports/baseline.json`、实玩 summary 与 contact sheet、`reports/review.md` | ✅ | 均已入库：实玩报告有 T62、W4 复核，以及两次 T61 冒烟 |
-| 3 | `sessions/`：导出全部相关会话记录，附 INDEX.md，导出前扫描密钥并打码 | ✅ | `python3 -I tools/export_sessions.py --out sessions --final`。覆盖主仓库与各 worktree 的项目目录：主会话、全部子代理、`claude -p` 驾驶会话。命中的内容只打码，不删除，见 `sessions/INDEX.md` |
+| 3 | `sessions/`：导出全部相关会话记录，附 INDEX.md，导出前扫描密钥并打码 | ✅ | 收录本项目实施会话 `0c37ec57`（主会话与 7 个子代理），以及 T62 正式实玩的 23 个 `claude -p` 驾驶会话（04:24 快照，由 `tools/export_sessions.py` 导出）。密钥只打码，不删除，见 `sessions/INDEX.md` |
 | 4 | README：三条命令复现（构建、gates、实玩）与两种接入方式 | ✅ | `README.md` |
 | 5 | `git ls-files \| grep -iE '\.(gb\|gbc\|sav\|state)$'` 为空 | ✅ | T90 第 3 项 |
 
